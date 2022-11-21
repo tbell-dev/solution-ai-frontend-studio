@@ -573,9 +573,8 @@ const LabelingContainer = () => {
     let polyItem = new fabric.Polygon(coordinate, option);
     /*if (isPolylineOn) {
       polyItem = new fabric.Polyline(coordinate, option);
-    }
-    
-    let tag = new fabric.Text('human ' + objId, {
+    }*/
+    let optionPolyItem = {
       id: objId,
       fill: '#ffffff',
       //textBackgroundColor: 'grey',
@@ -583,18 +582,19 @@ const LabelingContainer = () => {
       fontSize: 10 * (1 / imgRatio),
       visible: isTagOn,
       selectable: false,
-    });
+    };
+    let tag = new fabric.Text('human ' + objId, optionPolyItem);
     tag.set('top', polyItem.top + polyItem.height / 2 - tag.height / 2);
-    tag.set('left', polyItem.left + polyItem.width / 2 - tag.width / 2);*/
+    tag.set('left', polyItem.left + polyItem.width / 2 - tag.width / 2);
     canvas.add(polyItem);
-    //canvas.add(tag);
+    canvas.add(tag);
     polyItem.on('selected', selectObject);
     polyItem.on('deselected', deselectObject);
     //polyItem.on('modified', modifyObject);
-    /*ObjectListItem.push(polyItem);
-    TagListItem.push(tag);*/
+    ObjectListItem.push(polyItem);
+    TagListItem.push(tag);
     //this.fCanvas.setActiveObject(polyItem);
-    /*InstanceListItem.push({
+    InstanceListItem.push({
       id: objId, //category id
       tool: tool,
       cId: 0, //AnnotationListItem id
@@ -625,7 +625,7 @@ const LabelingContainer = () => {
         },
         annotation_data: cData,
       },
-    });*/
+    });
     if (type === 'polygon' || type === 'segment') {
       editPolygon(polyItem);
     }
@@ -1417,16 +1417,16 @@ const LabelingContainer = () => {
       fontSize: 10 * (1 / imgRatio),
       visible: isTagOn,
     };
-    /*let tag = new fabric.Text('human ' + objId, optionTag);
+    let tag = new fabric.Text('human ' + objId, optionTag);
 
     tag.set('top', rect.top + rect.height / 2 - tag.height / 2);
-    tag.set('left', rect.left + rect.width / 2 - tag.width / 2);*/
-    /*ObjectListItem.push(rect);
-    TagListItem.push(tag);*/
+    tag.set('left', rect.left + rect.width / 2 - tag.width / 2);
+    ObjectListItem.push(rect);
+    TagListItem.push(tag);
     canvas.add(rect);
-    //canvas.add(tag);
+    canvas.add(tag);
     //this.fCanvas.setActiveObject(rect);
-    /*InstanceListItem.push({
+    InstanceListItem.push({
       id: objId, //category id
       tool: tool,
       cId: 0, //AnnotationListItem id
@@ -1449,7 +1449,7 @@ const LabelingContainer = () => {
         },
         annotation_data: [rect.left, rect.top, rect.width, rect.height],
       },
-    });*/
+    });
     //console.log(this.AnnotationListItem);
     //this.setDataImage();
     objId++;
@@ -1584,7 +1584,7 @@ const LabelingContainer = () => {
       boxingPoint.on('selected', selectObject);
       boxingPoint.on('deselected', deselectObject);
       canvas.add(boxingPoint);
-      /*ObjectListItem.push(boxingPoint);
+      ObjectListItem.push(boxingPoint);
       //this.fCanvas.setActiveObject(polyItem);
       InstanceListItem.push({
         id: objId, //category id
@@ -1608,7 +1608,7 @@ const LabelingContainer = () => {
           },
           annotation_data: [point.x, point.y],
         },
-      });*/
+      });
       objId++;
 
     } else if (type === "autopoint") {
