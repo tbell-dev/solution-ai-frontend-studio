@@ -1,0 +1,82 @@
+{
+  "name": "ai-solution-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@chakra-ui/react": "^2.3.4",
+    "@craco/craco": "^6.4.5",
+    "@emotion/react": "^11.10.4",
+    "@emotion/styled": "^11.10.4",
+    "@reduxjs/toolkit": "^1.8.5",
+    "@tanstack/react-query": "^4.12.0",
+    "@tensorflow-models/body-pix": "^2.2.0",
+    "@tensorflow/tfjs": "^3.20.0",
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/jest": "^27.5.2",
+    "@types/node": "^16.11.59",
+    "@types/react": "^18.0.21",
+    "@types/react-dom": "^18.0.6",
+    "axios": "^0.27.2",
+    "buffer": "^6.0.3",
+    "craco-plugin-scoped-css": "^1.1.1",
+    "craco-webpack-resolve": "^1.2.1",
+    "crypto-browserify": "^3.12.0",
+    "fabric": "^5.2.4",
+    "framer-motion": "^7.3.6",
+    "merge-images": "^2.0.0",
+    "opencv.js": "^1.2.1",
+    "randomcolor": "^0.6.2",
+    "react": "^18.2.0",
+    "react-calendar": "^3.9.0",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.37.0",
+    "react-image-crop": "^10.0.7",
+    "react-is": "^18.2.0",
+    "react-redux": "^8.0.4",
+    "react-router-dom": "^6.4.1",
+    "react-scripts": "5.0.1",
+    "react-toastify": "^9.0.8",
+    "reaviz": "^13.1.13",
+    "redux-persist": "^6.0.0",
+    "stream-browserify": "^3.0.0",
+    "styled-components": "^5.3.5",
+    "typescript": "^4.8.3",
+    "web-vitals": "^2.1.4"
+  },
+  "scripts": {
+    "start": "craco --max-old-space-size=8192 start",
+    "build": "craco build",
+    "test": "craco test",
+    "eject": "react-scripts eject",
+    "serve": "HOST=0.0.0.0 craco start"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@types/fabric": "^4.5.12",
+    "@types/merge-images": "^1.2.1",
+    "@types/randomcolor": "^0.5.6",
+    "@types/react-calendar": "^3.5.3",
+    "@types/redux-persist": "^4.3.1",
+    "@types/styled-components": "^5.1.26",
+    "path-browserify": "^1.0.1"
+  }
+}
