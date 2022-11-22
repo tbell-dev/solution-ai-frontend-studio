@@ -913,6 +913,7 @@ const PreProcessingPresenter: React.FC<IPreProcessingPresenter> = ({
                   isOpen={isGrayscale}
                   onClose={onCancelGrayscale}
                   title={"그레이스케일"}
+                  txtSubmit={"적용"}
                   onSubmit={onSubmitGrayscale}
                 >
                   <>
@@ -949,6 +950,7 @@ const PreProcessingPresenter: React.FC<IPreProcessingPresenter> = ({
                   isOpen={isThresholding}
                   onClose={onCancelThresholding}
                   title={"이진화"}
+                  txtSubmit={"적용"}
                   onSubmit={onSubmitThresholding}
                 >
                   <>
@@ -980,6 +982,7 @@ const PreProcessingPresenter: React.FC<IPreProcessingPresenter> = ({
                   isOpen={isResizing}
                   onClose={onCancelResizing}
                   title={"확대 / 축소"}
+                  txtSubmit={"적용"}
                   onSubmit={onSubmitResizing}
                 >
                   <>
@@ -1014,6 +1017,7 @@ const PreProcessingPresenter: React.FC<IPreProcessingPresenter> = ({
                   isOpen={isRotateSymmetry}
                   onClose={onCancelRotateSymmetry}
                   title={"회전 / 대칭"}
+                  txtSubmit={"적용"}
                   onSubmit={onSubmitRotateSymmetry}
                   loading={effectLoading}
                 >
@@ -1078,6 +1082,7 @@ const PreProcessingPresenter: React.FC<IPreProcessingPresenter> = ({
                   isOpen={isTransform}
                   onClose={onCancelTransform}
                   title={"변환"}
+                  txtSubmit={"적용"}
                   onSubmit={onSubmitTransform}
                   loading={effectLoading}
                 >
@@ -1185,6 +1190,7 @@ const PreProcessingPresenter: React.FC<IPreProcessingPresenter> = ({
                   isOpen={isBCOpen}
                   onClose={onCancelBC}
                   title={"밝기 / 대비"}
+                  txtSubmit={"적용"}
                   onSubmit={onSubmitBC}
                   loading={effectLoading}
                 >
@@ -1222,6 +1228,7 @@ const PreProcessingPresenter: React.FC<IPreProcessingPresenter> = ({
                   isOpen={isNoiseRemove}
                   onClose={onCancelNoiseRemove}
                   title={"노이즈 제거"}
+                  txtSubmit={"적용"}
                   onSubmit={onSubmitNoiseRemove}
                   removeEffect={true}
                   removeEffectFn={noiseRemove}
@@ -1243,6 +1250,7 @@ const PreProcessingPresenter: React.FC<IPreProcessingPresenter> = ({
                   isOpen={isOpenRemoveBg}
                   onClose={onCancelRemoveBg}
                   title={"배경 제거"}
+                  txtSubmit={"적용"}
                   onSubmit={onSubmitRemoveBg}
                   loading={effectLoading}
                   removeEffect={true}

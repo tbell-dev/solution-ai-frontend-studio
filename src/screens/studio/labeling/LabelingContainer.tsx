@@ -446,8 +446,8 @@ const LabelingContainer = () => {
     if(canvas) {
       //canvas.on('mouse:down:before', beforeDownCanvas);
       //canvas.on('mouse:out', outCanvas);
-      //canvas.on('object:moving', handleObjectMoving);
-      //canvas.on('object:scaling', handleObjectScaling);
+      canvas.on('object:moving', handleMoveObject);
+      canvas.on('object:scaling', handleScaleObject);
       //canvas.on('selection:created', handleSelectionCreated);
       //canvas.on('selection:updated', handleSelectionUpdated);
       //canvas.on('before:selection:cleared', beforeClearSelection);
@@ -455,6 +455,17 @@ const LabelingContainer = () => {
       //canvas.on('mouse:wheel', handleMouseWheel);
       //canvas.on('path:created', createPath);
       //ctx = canvas.getContext();
+      fabric.Object.prototype.setControlsVisibility({
+        bl: true,
+        br: true,
+        tl: true,
+        tr: true,
+        mb: true,
+        ml: true,
+        mr: true,
+        mt: true,
+        mtr: false,
+      });
       setContext(() => canvas.getContext());
     }
   }, [canvas]);
@@ -504,32 +515,975 @@ const LabelingContainer = () => {
     }
   };
 
-  //const [isDown, setDown] = useState<boolean>(false);
-  let isDown = false, drawMode = false, isDragging = false, selection = false, isSelectObject = false;
+  let isDown = false, drawMode = false, isDragging = false, selection = false, isSelectObjectOn = false;
+  let objId = 0;
   let startX = 0, startY = 0, endX = 0, endY = 0;
-  let instanceWidth = 0, instanceHeight = 0, positionX = 0, positionY =0;
   let pointArray: any[] = [];
   let activeLine: any = null;
   let activeShape: any = null;
   let lineArray: any[] = [];
-  const handleCanvasDown = (options: any) => {
-    isDown = true;
-    if(!canvas) return;
-    console.log("down-" + isPolygonOn);
+
+  const [instanceWidth, setInstanceWidth] = useState(0);
+  const [instanceHeight, setInstanceHeight] = useState(0);
+  const [positionX, setPositionX] = useState(0);
+  const [positionY, setPositionY] = useState(0);
+
+  const handleSelectObject = (options) => {
+    if(!options.target) return;
+    isSelectObjectOn = true;
+    setSelectObject(() => options.target);
+  }
+
+  const handleDeSelectObject = (options) => {
+    if(!options.target) return;
+    isSelectObjectOn = false;
+  }
+
+  const handleMoveObject = (options) => {
+    if(!options.target) return;
+    if(options.target.type === "rect") {
+      setInstanceWidth(() => options.target.width * options.target.scaleX);
+      setInstanceHeight(() => options.target.height * options.target.scaleY);
+      setPositionX(() => options.target.left);
+      setPositionY(() => options.target.top);
+      console.log(options.target);
+      console.log(TagListItem);
+      for (let i = 0; i < TagListItem.length; i++) {
+        let tag = TagListItem[i];
+        console.log(tag);
+        if (tag.id === options.target.id) {
+          tag.left =
+            options.target.left + options.target.width / 2 - tag.width / 2;
+          tag.top =
+            options.target.top + options.target.height / 2 - tag.height / 2;
+        }
+      }
+      for (let j = 0; j < AnnotationListItem.length; j++) {
+        if (AnnotationListItem[j].id === options.target.id) {
+          AnnotationListItem[j].annotation.annotation_data = [
+            options.target.left,
+            options.target.top,
+            options.target.width,
+            options.target.height,
+          ];
+        }
+      }
+      //setDataImage(options.target);
+    }
+  }
+
+  const handleScaleObject = (options) => {
+    if(!options.target) return;
+    if(options.target.type === "rect") {
+      let coords = {
+        left: options.target.left,
+        top: options.target.top,
+        width: options.target.width * options.target.scaleX,
+        height: options.target.height * options.target.scaleY,
+      };
+      setInstanceWidth(() => coords.width);
+      setInstanceHeight(() => coords.height);
+      setPositionX(() => coords.left);
+      setPositionY(() => coords.top);
+      options.target.set({
+        width: coords.width,
+        height: coords.height,
+        scaleX: 1,
+        scaleY: 1,
+      });
+      for (let i = 0; i < AnnotationListItem.length; i++) {
+        if (AnnotationListItem[i].id === options.target.id) {
+          AnnotationListItem[i].annotation.annotation_data = [
+            coords.left,
+            coords.top,
+            coords.width,
+            coords.height,
+          ];
+          //console.log(this.AnnotationListItem[i]);
+        }
+      }
+    }
+    //setDataImage(coords);
+    if(canvas) canvas.renderAll();
+  }
+
+  const [selectObject, setSelectObject] = useState<fabric.Object>();
+  const [labelWidth, setLabelWidth] = useState(0);
+  const [labelHeight, setLabelHeight] = useState(0);
+  const [labelCoordX, setLabelCoordX] = useState(0);
+  const [labelCoordY, setLabelCoordY] = useState(0);
+  const [labelDiag, setLabelDiag] = useState("");
+  const [labelPerWidth, setLabelPerWidth] = useState("");
+  const [labelPerHeight, setLabelPerHeight] = useState("");
+  const [labelPerDiag, setLabelPerDiag] = useState("");
+
+  useEffect(() => {
+    console.log(selectObject);
+    if(selectObject) {
+      setLabelHeight(() => Math.round(selectObject.height));
+      setLabelPerHeight(() => ((selectObject.height / imgHeight * imgRatio) * 100).toFixed(2));
+      setLabelWidth(() => Math.round(selectObject.width));
+      setLabelPerWidth(() => ((selectObject.width / imgWidth * imgRatio) * 100).toFixed(2));
+      setLabelDiag(() => Math.sqrt(Math.pow(selectObject.width, 2) + Math.pow(selectObject.height, 2)).toFixed(2));
+      setLabelPerDiag(() => ((Math.sqrt(Math.pow(selectObject.width, 2) + Math.pow(selectObject.height, 2)) / Math.sqrt(Math.pow(imgWidth * imgRatio, 2) + Math.pow(imgHeight * imgRatio, 2))) * 100).toFixed(2));
+      setLabelCoordX(() => Math.round(selectObject.left));
+      setLabelCoordY(() => Math.round(selectObject.top));
+    }
+  }, [selectObject]);
+
+  useEffect(() => {
+    setLabelHeight(() => Math.round(instanceHeight));
+    setLabelPerHeight(() => ((instanceHeight / imgHeight * imgRatio) * 100).toFixed(2));
+    setLabelWidth(() => Math.round(instanceWidth));
+    setLabelPerWidth(() => ((instanceWidth / imgWidth * imgRatio) * 100).toFixed(2));
+    setLabelDiag(() => Math.sqrt(Math.pow(instanceWidth, 2) + Math.pow(instanceHeight, 2)).toFixed(2));
+    setLabelPerDiag(() => ((Math.sqrt(Math.pow(instanceWidth, 2) + Math.pow(instanceHeight, 2)) / Math.sqrt(Math.pow(imgWidth * imgRatio, 2) + Math.pow(imgHeight * imgRatio, 2))) * 100).toFixed(2));
+    setLabelCoordX(() => Math.round(positionX));
+    setLabelCoordY(() => Math.round(positionY));
+    console.log(instanceWidth + ", " + instanceHeight);
+    console.log(positionX + ", " + positionY);
+  }, [instanceWidth, instanceHeight, positionX, positionY]);
+
+
+  //*************** Header function **********************/
+
+  // ! Download image
+  const handleDownloadCoco = () => {
+    if (selectedTask && currentDataURL && canvas) {
+      let datas = [];
+      for (let i = 0; i < AnnotationListItem.length; i++) {
+        datas.push(AnnotationListItem[i].annotation);
+      }
+      let data = JSON.stringify(datas);
+      const a = document.createElement("a");
+      let file = new Blob([data], { type: "text/plain" });
+      a.href = URL.createObjectURL(file);
+      a.download = selectedTask.imageName + ".json";
+      a.click();
+    }
+  };
+
+  // ! Download image
+  const handleDownloadImage = () => {
+    if (selectedTask && currentDataURL && canvas) {
+      const a = document.createElement("a");
+      a.setAttribute("download", selectedTask.imageName);
+      //a.setAttribute("href", currentDataURL);
+      a.setAttribute("href", canvas.toDataURL({
+        //format: 'png',
+        quality: 1.0,
+        //multiplier: 1 / imgRatio,
+        }),
+      );
+      a.click();
+    }
+  };
+  // ! Toggle full screen
+  const handleToggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+  };
+  // ! Filtering only selected task's history
+  const getFilteredSelectedTask = (selectedTask: ITask): IDataURLHistory[] => {
+    return dataURLHistory.filter(
+      (history) => history.taskId === selectedTask.taskId
+    );
+  };
+  // ! Undo
+  const handleUnDo = () => {
+    if (selectedTask) {
+      const currentTaskHistory = getFilteredSelectedTask(selectedTask);
+      let pointer;
+      for (let i = 0; i < currentTaskHistory.length; i++) {
+        if (currentDataURL === currentTaskHistory[i].dataURL) {
+          if (currentTaskHistory[i].order === 0) {
+            return;
+          }
+          pointer = currentTaskHistory[i - 1].order;
+          break;
+        }
+      }
+      if (pointer !== undefined) {
+        setCurrentDataURL(currentTaskHistory[pointer].dataURL);
+      }
+    }
+  };
+  // ! Redo
+  const handleRedo = () => {
+    if (selectedTask) {
+      const currentTaskHistory = getFilteredSelectedTask(selectedTask);
+      let pointer;
+      for (let i = 0; i < currentTaskHistory.length; i++) {
+        if (currentDataURL === currentTaskHistory[i].dataURL) {
+          if (currentTaskHistory[i].order === currentTaskHistory.length - 1) {
+            return;
+          }
+          pointer = currentTaskHistory[i + 1].order;
+          break;
+        }
+      }
+      if (pointer !== undefined) {
+        setCurrentDataURL(currentTaskHistory[pointer].dataURL);
+      }
+    }
+  };
+  // ! Save (Update)
+  const saveData = async () => {
+    // TODO: 아래처럼 구현하면 업로드는 진행되는데 파일명이 blob.png로 떨어짐 이거는 추후 수정
+    // ! 서버에 상태 및 라벨링 데이터 저장 기능
+    /*if (currentDataURL) {
+      const file = dataUrlToBlob(currentDataURL);
+      let formdata = new FormData();
+      formdata.append("image", file);
+
+      if (pId && selectedTask) {
+        const res = await taskApi.updateTaskData(
+          { project_id: parseInt(pId), task_id: selectedTask.taskId },
+          formdata
+        );
+        if (res && res.status === 200) {
+          toast({
+            title: "Task Image 업데이트 완료",
+            status: "success",
+            position: "top",
+            duration: 2000,
+            isClosable: true,
+          });
+        }
+      }
+    }*/
+  };
+  const goBack = () => {
+    navigate(-1);
+  };
+
+  //*************** Main function **********************/
+  const [ObjectListItem, setObjectListItem] = useState([]);
+  const [InstanceListItem, setInstanceListItem] = useState([]);
+  const [AnnotationListItem, setAnnotationListItem] = useState([]);
+  const [TagListItem, setTagListItem] = useState([]);
+  const [DeleteIDList, setDeleteIDList] = useState([]);
+  const [instanceClass, setInstanceClass] = useState("");
+  const [instanceGender, setInstanceGender] = useState("");
+  const [instanceAge, setInstanceAge] = useState("");
+
+  // Todo: 오토라벨링 Active 체크
+  const [isAutoLabelingOn, setAutoLabelingOn] = useState(false);
+
+
+  const resetTools = () => {
+    canvas.defaultCursor = "default";
+    canvas.hoverCursor = "crosshair";
+    setIsODOnOff(() => false);
+    setIsISOnOff(() => false);
+    setIsSESOnOff(() => false);
+    setIsSmartpenOnOff(() => false);
+    setIsAutopointOnOff(() => false);
+    setIsBoxingOnOff(() => false);
+    setIsPolylineOnOff(() => false);
+    setIsPolygonOnOff(() => false);
+    setIsPointOnOff(() => false);
+    setIsBrushOnOff(() => false);
+    setIs3DcubeOnOff(() => false);
+    setIsSegmentOnOff(() => false);
+    setIsKeypointOnOff(() => false);
+  }
+  const clearDatas = () => {
+    setObjectListItem(() => []);
+    setInstanceListItem(() => []);
+    setAnnotationListItem(() => []);
+    setTagListItem(() => []);
+    setDeleteIDList(() => []);
+    setInstanceClass(() => "");
+    setInstanceGender(() => "");
+    setInstanceAge(() => "");
+    objId = 0;
+  }
+  const clearAutoLabeling = (tool: string) => {
+    for (let i = 0; i < ObjectListItem.length; i++) {
+      if (ObjectListItem[i].tool === tool) {
+        let id = ObjectListItem[i].id;
+
+        for (let j = 0; j < TagListItem.length; j++) {
+          let tag = TagListItem[j];
+          if (tag.id === id) {
+            canvas.remove(tag);
+            TagListItem.splice(j, 1);
+          }
+        }
+        for (let k = 0; k < InstanceListItem.length; k++) {
+          if (InstanceListItem[k].id === id) {
+            InstanceListItem.splice(k, 1);
+          }
+        }
+        for (let l = 0; l < AnnotationListItem.length; l++) {
+          if (AnnotationListItem[l].id === id) {
+            if (AnnotationListItem[l].annotation.annotation_id) {
+              DeleteIDList.push(
+                AnnotationListItem[l].annotation.annotation_id,
+              );
+              console.log(
+                AnnotationListItem[l].annotation.annotation_id,
+              );
+            } else {
+              console.log('no id');
+            }
+            AnnotationListItem.splice(l, 1);
+          }
+        }
+
+        canvas.remove(ObjectListItem[i]);
+        //this.ObjectListItem.splice(i, 1);
+      }
+    }
+    for (let i = 0; i < ObjectListItem.length; i++) {
+      if (ObjectListItem[i].tool === tool) {
+        ObjectListItem.splice(i, 1);
+      }
+    }
+  }
+
+  //**! download */
+  const [isDownloadOn, setIsDownloadOnOff] = useState<boolean>(false);
+  const [isDownload, setDownload] = useState("");
+  const [selectDownload, setSelectDownload] = useState("");
+  const checkIsDownload = () => {
+    setIsDownloadOnOff((prev) => !prev);
+  };
+  const onCancelDownload = () => {
+    setIsDownloadOnOff(false);
+    setDownload(() => "");
+    setSelectDownload(() => "");
+  };
+  const onSubmitDownload = () => {
+    console.log(isDownload);
+    switch(isDownload) {
+      case "coco":
+        handleDownloadCoco();
+        break;
+      case "yolo":
+        // Todo
+        break;
+      case "image":
+        handleDownloadImage();
+        break;
+    }
+    setIsDownloadOnOff(false);
+  };
+  const _setDownload = (file: string) => {
+    setDownload(() => file);
+    let txt = "";
+    switch(file) {
+      case "coco":
+        txt = "COCO Dataset Format";
+        break;
+      case "yolo":
+        txt = "YOLO Dataset Format";
+        break;
+      case "image":
+        txt = "Image";
+        break;
+    }
+    setSelectDownload(() => txt);
+  };
+
+  //**! resize  */
+  const [resizingVal, setResizingVal] = useState<string | null>(null);
+  const handleResizing = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setResizingVal(e.target.value);
+    zoomAdjustment(e.target.value);
+  };
+
+  const zoomAdjustment = (value: string) => {
+    if(canvas) {
+      let zoom = parseInt(value);
+      if(zoom < 10) zoom = 10;
+      zoom *= imgRatio;
+      let width = imgWidth * (zoom / 100);
+      let height = imgHeight * (zoom / 100);
+      console.log(width + ", " + height + ", " + imgRatio);
+      canvas.setWidth(width);
+      canvas.setHeight(height);
+      canvas.setZoom(zoom / 100);
+    }
+  };
+  /*const setZoomCenter = () => {
+    document.getElementById('zoom-range').value = 100;
+    canvas.setWidth(inWidth * imgRatio);
+    canvas.setHeight(inHeight * imgRatio);
+    canvas.setZoom(imgRatio);
+  };*/
+
+  //**! move */
+  const [isMoveOn, setIsMoveOnOff] = useState<boolean>(false);
+  const checkIsMove = () => {
+    setIsMoveOnOff((prev) => !prev);
+  };
+  const onCancelMove = () => {
+    setIsMoveOnOff(() => false);
+  };
+  useEffect(() => {
+    if(isMoveOn) {
+      canvas.hoverCursor = "move";
+    }
+  }, [isMoveOn]);
+  //**! tag */
+  const [isTagOn, setIsTagOnOff] = useState<boolean>(false);
+  const checkIsTag = () => {
+    setIsTagOnOff((prev) => !prev);
+  };
+  useEffect(() => {
+    console.log("tag");
+    if (!isTagOn) {
+      /*let items = this.fCanvas.getObjects();
+      for (let i = 0; i < items.length; i++) {
+        this.fCanvas.remove(this.TagListItem[i]);
+      }*/
+      for (let i = 0; i < TagListItem.length; i++) {
+        TagListItem[i].visible = false;
+      }
+    } else {
+      console.log(TagListItem);
+      for (let i = 0; i < TagListItem.length; i++) {
+        //this.fCanvas.add(this.TagListItem[i]);
+        TagListItem[i].visible = true;
+      }
+    }
+    if(canvas)
+      canvas.renderAll();
+  }, [isTagOn]);
+  //**! class */
+  const [isClassOn, setIsClassOnOff] = useState<boolean>(false);
+  const checkIsClass = () => {
+    // 클래스 팝업
+    setIsClassOnOff((prev) => !prev);
+  };
+  const onCancelClass = () => {
+    setIsClassOnOff(false);
+  };
+  const setIsClass = (index: number) => {
+    // Todo: Instance 클래스 팝업
+    console.log("instance class");
+  };
+
+  //**! reset */
+  const [isResetOn, setIsResetOnOff] = useState<boolean>(false);
+  const checkIsReset = () => {
+    setIsResetOnOff((prev) => !prev);
+  };
+  const onCancelReset = () => {
+    setIsResetOnOff(false);
+  };
+  const onSubmitReset = () => {
+    // Todo: 리셋 초기화 내용 작업 필요
+    resetTools();
+    clearDatas();
+    canvas.clear();
+    setCanvasImage();
+    setIsResetOnOff(false);
+  };
+  //**! OD */
+  const [isODOn, setIsODOnOff] = useState<boolean>(false);
+  const checkIsOD = () => {
+    resetTools();
+    setIsODOnOff((prev) => !prev);
+  };
+  const [isISOn, setIsISOnOff] = useState<boolean>(false);
+  //**! IS */
+  const checkIsIS = () => {
+    resetTools();
+    setIsISOnOff((prev) => !prev);
+  };
+  //**! SES */
+  const [isSESOn, setIsSESOnOff] = useState<boolean>(false);
+  const checkIsSES = () => {
+    resetTools();
+    setIsSESOnOff((prev) => !prev);
+  };
+  //**! smartpen */
+  const [isSmartpenOn, setIsSmartpenOnOff] = useState<boolean>(false);
+  const checkIsSmartpen = () => {
+    resetTools();
+    setIsSmartpenOnOff(!isSmartpenOn);
+  };
+  const onCancelSmartpen = () => {
+    setIsSmartpenOnOff(false);
+  };
+  //**! autopoint */
+  let autoPointList = [];
+  const [isAutopointOn, setIsAutopointOnOff] = useState<boolean>(false);
+  const checkIsAutopoint = () => {
+    resetTools();
+    setIsAutopointOnOff((prev) => !prev);
+  };
+  const onCancelAutopoint = () => {
+    setIsAutopointOnOff(false);
+  };
+  useEffect(() => {
+    if(isAutopointOn && canvas) {
+      canvas.defaultCursor = "crosshair";
+      canvas.hoverCursor = "crosshair";
+      canvas.on("mouse:down", handlePointDown);
+      canvas.on("mouse:move", handlePointMove);
+      canvas.on("mouse:up", handleAutopointUp);
+    } else if(!isAutopointOn && canvas) {
+      canvas.off("mouse:down");
+      canvas.off("mouse:move");
+      canvas.off("mouse:up");
+    }
+  }, [isAutopointOn]);
+  const handleAutopointUp = (options: any) => {
+    if(!canvas || isSelectObjectOn) return;
+    let pointer = canvas.getPointer(options);
+    endX = pointer.x;
+    endY = pointer.y;
+    drawPoints(pointer, "autopoint");
+  };
+  //**! boxing */
+  const [isBoxingOn, setIsBoxingOnOff] = useState<boolean>(false);
+  const checkIsBoxing = () => {
+    resetTools();
+    setIsBoxingOnOff((prev) => !prev);
+  };
+  useEffect(() => {
+    if(isBoxingOn && canvas) {
+      canvas.defaultCursor = "crosshair";
+      canvas.hoverCursor = "crosshair";
+      canvas.on("mouse:down", handleBoxingDown);
+      canvas.on("mouse:move", handleBoxingMove);
+      canvas.on("mouse:up", handleBoxingUp);
+    } else if(!isBoxingOn && canvas) {
+      canvas.off("mouse:down");
+      canvas.off("mouse:move");
+      canvas.off("mouse:up");
+    }
+  }, [isBoxingOn]);
+  let tempRect: fabric.Rect = null;
+  const handleBoxingDown = (options: any) => {
+    if(!canvas || isSelectObjectOn) return;
     let pointer = canvas.getPointer(options);
     startX = pointer.x;
     startY = pointer.y;
-    //stX = pointer.x;
-    //stY = pointer.y;
+    tempRect = new fabric.Rect({
+      left: pointer.x,
+      top: pointer.y,
+      width: 0,
+      height: 0,
+      strokeWidth: 2 * (1 / imgRatio),
+      stroke: 'rgba(0,0,0,0.3)',
+      strokeDashArray: [5 * (1 / imgRatio), 5 * (1 / imgRatio)],
+      fill: 'transparent',
+    });
+    canvas.add(tempRect);
+    isDown = true;
   };
+  const handleBoxingMove = (options: any) => {
+    if(!canvas || !isDown || isSelectObjectOn) return;
+    let pointer = canvas.getPointer(options);
+    setDragBox(pointer.x, pointer.y);
+  };
+  const handleBoxingUp = (options: any) => {
+    if(!canvas || isSelectObjectOn) return;
+    let pointer = canvas.getPointer(options);
+    endX = pointer.x;
+    endY = pointer.y;
+    if (
+      Math.abs(endX - startX) > 1 &&
+      Math.abs(endY - startY) > 1
+    ) {
+      setRect();
+      //this.drawBoxing();
+    }
+    isDown = false;
+  };
+  const setDragBox = (nowX, nowY) => {
+    let rTop, rLeft, rBottom, rRight;
+    if (startX > nowX) {
+      rLeft = nowX;
+      rRight = startX;
+    } else {
+      rLeft = startX;
+      rRight = nowX;
+    }
+    if (startY > nowY) {
+      rTop = nowY;
+      rBottom = startY;
+    } else {
+      rTop = startY;
+      rBottom = nowY;
+    }
+    setInstanceWidth(() => rRight - rLeft);
+    setInstanceHeight(() => rBottom - rTop);
+    setPositionX(() => rLeft);
+    setPositionY(() => rTop);
 
-  const selectObject = (options) => {
-    isSelectObject = true;
+    if(tempRect)
+      tempRect.set({
+        left: rLeft,
+        top: rTop,
+        width: rRight - rLeft,
+        height: rBottom - rTop,
+      });
+    //this.DragRectListItem.push(rect);
+    canvas.renderAll();
   }
+  const setRect = () => {
+    let rTop, rLeft, rBottom, rRight;
+    if (startX > endX) {
+      rLeft = endX;
+      rRight = startX;
+    } else {
+      rLeft = startX;
+      rRight = endX;
+    }
+    if (startY > endY) {
+      rTop = endY;
+      rBottom = startY;
+    } else {
+      rTop = startY;
+      rBottom = endY;
+    }
+    setInstanceWidth(() => rRight - rLeft);
+    setInstanceHeight(() => rBottom - rTop);
+    setPositionX(() => rLeft);
+    setPositionY(() => rTop);
+    let coordinate = {
+      left: rLeft,
+      top: rTop,
+      width: rRight - rLeft,
+      height: rBottom - rTop,
+    };
+    //console.log(coordinate);
+    drawBoxing('bbox', coordinate, '#000000', null);
+  }
+  const drawBoxing = (tool, coordinate, color, aId) => {
+    canvas.remove(tempRect);
+    let optionRect = {
+      id: objId,
+      tool: tool,
+      color: color,
+      left: coordinate.left,
+      top: coordinate.top,
+      width: coordinate.width,
+      height: coordinate.height,
+      strokeWidth: 2 * (1 / imgRatio),
+      //stroke: 'rgba(0,0,0,0.5)',
+      stroke: color,
+      //strokeOpacity: '.5',
+      fill: 'transparent',
+      //fill: 'rgba(0,0,0,0.3)',
+      //fill: color,
+      //fillOpacity: '.3',
+      //strokeDashArray: [5, 5],
+      hoverCursor: 'pointer',
+      objectCaching: false,
+    };
+    let rect = new fabric.Rect(optionRect);
+    rect.on('selected', handleSelectObject);
+    rect.on('deselected', handleDeSelectObject);
 
-  const deselectObject = (options) => {
-    isSelectObject = false;
+    let optionTag = {
+      id: objId,
+      fill: '#ffffff',
+      //textBackgroundColor: 'grey',
+      fontFamily: 'Comic Sans',
+      fontSize: 10 * (1 / imgRatio),
+      visible: isTagOn,
+    };
+    console.log(isTagOn);
+    let tag = new fabric.Text('human ' + objId, optionTag);
+    tag.set('top', rect.top + rect.height / 2 - tag.height / 2);
+    tag.set('left', rect.left + rect.width / 2 - tag.width / 2);
+    ObjectListItem.push(rect);
+    TagListItem.push(tag);
+    canvas.add(rect);
+    canvas.add(tag);
+    //this.fCanvas.setActiveObject(rect);
+    InstanceListItem.push({
+      id: objId, //category id
+      tool: tool,
+      cId: 0, //AnnotationListItem id
+      className: 'human',
+      gender: '',
+      age: '',
+      attrs: [],
+    });
+    //console.log(this.InstanceListItem);
+    AnnotationListItem.push({
+      id: objId,
+      annotation: {
+        annotation_id: aId,
+        annotation_type: {
+          annotation_type_id: 1,
+        },
+        annotation_category: {
+          annotation_category_id: 0,
+          annotation_category_attributes: [],
+        },
+        annotation_data: [rect.left, rect.top, rect.width, rect.height],
+      },
+    });
+    //console.log(this.AnnotationListItem);
+    //this.setDataImage();
+    objId++;
   }
+  //**! polyline */
+  const [isPolylineOn, setIsPolylineOnOff] = useState<boolean>(false);
+  const checkIsPolyline = () => {
+    resetTools();
+    setIsPolylineOnOff((prev) => !prev);
+  };
+  useEffect(() => {
+    if(isPolylineOn) {
+      canvas.hoverCursor = "crosshair";
+    }
+  }, [isPolylineOn]);
+  //**! polygon */
+  const [isPolygonOn, setIsPolygonOnOff] = useState<boolean>(false);
+  const checkIsPolygon = () => {
+    resetTools();
+    setIsPolygonOnOff((prev) => !prev);
+  };
+  useEffect(() => {
+    if(isPolygonOn && canvas) {
+      canvas.defaultCursor = "crosshair";
+      canvas.hoverCursor = "crosshair";
+      canvas.on("mouse:down", handlePolygonDown);
+      canvas.on("mouse:move", handlePolyItemMove);
+      canvas.on("mouse:up", handlePolyItemUp);
+    } else if(!isPolygonOn && canvas) {
+      canvas.off("mouse:down");
+      canvas.off("mouse:move");
+      canvas.off("mouse:up");
+    }
+  }, [isPolygonOn]);
+  const handlePolygonDown = (options: any) => {
+    if(!canvas || isSelectObjectOn) return;
+    if (drawMode) {
+      if (options.target && pointArray.length > 0 && options.target.id === pointArray[0].id) {
+        // when click on the first point
+        generatePolygon(pointArray, "polygon", "#0084ff");
+      } else {
+        addPoint(options);
+      }
+    } else {
+      toggleDrawPolygon(options);
+    }
+  };
+  const handlePolyItemMove = (options: any) => {
+    if(!canvas || isSelectObjectOn) return;
+    let pointer = canvas.getPointer(options);
+    if (drawMode) {
+      if (activeLine && activeLine.type === 'line') {
+        activeLine.set({
+          x2: pointer.x,
+          y2: pointer.y,
+        });
+        const points = activeShape.get('points');
+        points[pointArray.length] = {
+          x: pointer.x,
+          y: pointer.y,
+        };
+        activeShape.set({
+          points,
+        });
+      }
+      canvas.renderAll();
+    }
+  };
+  const handlePolyItemUp = (options: any) => {
+    if(!canvas || isSelectObjectOn) return;
+    isDragging = false;
+    selection = true;
+  };
+  //**! point */
+  const [isPointOn, setIsPointOnOff] = useState<boolean>(false);
+  const checkIsPoint = () => {
+    resetTools();
+    setIsPointOnOff((prev) => !prev);
+  };
+  useEffect(() => {
+    if(isPointOn && canvas) {
+      canvas.defaultCursor = "crosshair";
+      canvas.hoverCursor = "crosshair";
+      canvas.on("mouse:down", handlePointDown);
+      canvas.on("mouse:move", handlePointMove);
+      canvas.on("mouse:up", handlePointUp);
+    } else if(!isPointOn && canvas) {
+      canvas.off("mouse:down");
+      canvas.off("mouse:move");
+      canvas.off("mouse:up");
+    }
+  }, [isPointOn]);
+  const handlePointDown = (options: any) => {
+    if(!canvas || isSelectObjectOn) return;
+    let pointer = canvas.getPointer(options);
+    startX = pointer.x;
+    startY = pointer.y;
+  };
+  const handlePointMove = (options: any) => {
+    if(!canvas || !isDown || isSelectObjectOn) return;
+    let pointer = canvas.getPointer(options);
+  };
+  const handlePointUp = (options: any) => {
+    if(!canvas || isSelectObjectOn) return;
+    let pointer = canvas.getPointer(options);
+    endX = pointer.x;
+    endY = pointer.y;
+    drawPoints(pointer, "point");
+  };
+  const drawPoints = (point: any, type: string) => {
+    if(type === "point") {
+      let optionPoint = {
+        id: objId,
+        radius: 4 / imgRatio,
+        stroke: 'black',
+        strokeWidth: 1 / imgRatio,
+        color: '#ff0000',
+        fill: '#ff0000',
+        //startAngle: 0,
+        //endAngle: 2,
+        left: point.x,
+        top: point.y,
+        hasBorders: false,
+        //hasControls: false,
+        cornerSize: 5 / imgRatio,
+        originX: 'center',
+        originY: 'center',
+        hoverCursor: 'pointer',
+        selectable: true,
+      };
+      let boxingPoint = new fabric.Circle(optionPoint);
+      boxingPoint.on('selected', handleSelectObject);
+      boxingPoint.on('deselected', handleDeSelectObject);
+      canvas.add(boxingPoint);
+      ObjectListItem.push(boxingPoint);
+      //this.fCanvas.setActiveObject(polyItem);
+      InstanceListItem.push({
+        id: objId, //category id
+        tool: 'point',
+        cId: 0, //AnnotationListItem id
+        className: 'human',
+        gender: '',
+        age: '',
+        attrs: [],
+      });
+      //console.log(this.InstanceListItem);
+      AnnotationListItem.push({
+        id: objId,
+        annotation: {
+          annotation_type: {
+            annotation_type_id: 5,
+          },
+          annotation_category: {
+            annotation_category_id: 0,
+            annotation_category_attributes: [],
+          },
+          annotation_data: [point.x, point.y],
+        },
+      });
+      objId++;
+
+    } else if (type === "autopoint") {
+      let optionAutopoint = {
+        id: objId,
+        radius: 7 / imgRatio,
+        stroke: 'black',
+        strokeWidth: 1 / imgRatio,
+        color: '#999999',
+        fill: '#ffcc00',
+        //startAngle: 0,
+        //endAngle: 2,
+        left: point.x,
+        top: point.y,
+        hasBorders: false,
+        hasControls: false,
+        cornerSize: 5 / imgRatio,
+        originX: 'center',
+        originY: 'center',
+        hoverCursor: 'pointer',
+        selectable: true,
+      };
+      let autoPoint = new fabric.Circle(optionAutopoint);
+      autoPointList.push(autoPoint);
+      canvas.add(autoPoint);
+      if (autoPointList.length === 2) {
+        let ePoint = autoPointList.pop();
+        let sPoint = autoPointList.pop();
+        startX = sPoint.left;
+        startY = sPoint.top;
+        endX = ePoint.left;
+        endY = ePoint.top;
+        //console.log(ePoint);
+        //console.log(sPoint);
+        canvas.remove(ePoint);
+        canvas.remove(sPoint);
+        setRect();
+      }
+    }
+  }
+  //**! brush */
+  const [isBrushOn, setIsBrushOnOff] = useState<boolean>(false);
+  const checkIsBrush = () => {
+    resetTools();
+    setIsBrushOnOff((prev) => !prev);
+  };
+  const onCancelBrush = () => {
+    setIsBrushOnOff(false);
+  };
+  //**! 3Dcube */
+  const [is3DcubeOn, setIs3DcubeOnOff] = useState<boolean>(false);
+  const checkIs3Dcube = () => {
+    resetTools();
+    setIs3DcubeOnOff((prev) => !prev);
+  };
+  const onCancel3Dcube = () => {
+    setIs3DcubeOnOff(false);
+  };
+  //**! segment */
+  const [isSegmentOn, setIsSegmentOnOff] = useState<boolean>(false);
+  const checkIsSegment = () => {
+    resetTools();
+    setIsSegmentOnOff((prev) => !prev);
+  };
+  useEffect(() => {
+    if(isSegmentOn && canvas) {
+      canvas.defaultCursor = "crosshair";
+      canvas.hoverCursor = "crosshair";
+      canvas.on("mouse:down", handleSegmentDown);
+      canvas.on("mouse:move", handlePolyItemMove);
+      canvas.on("mouse:up", handlePolyItemUp);
+    } else if(!isSegmentOn && canvas) {
+      canvas.off("mouse:down");
+      canvas.off("mouse:move");
+      canvas.off("mouse:up");
+    }
+  }, [isSegmentOn]);
+  const handleSegmentDown = (options: any) => {
+    if(!canvas || isSelectObjectOn) return;
+    if (drawMode) {
+      if (options.target && pointArray.length > 0 && options.target.id === pointArray[0].id) {
+        // when click on the first point
+        generatePolygon(pointArray, "segment", "#eecc55");
+      } else {
+        addPoint(options);
+      }
+    } else {
+      toggleDrawPolygon(options);
+    }
+  };
+  //**! keypoint */
+  const [isKeypointOn, setIsKeypointOnOff] = useState<boolean>(false);
+  const checkIsKeypoint = () => {
+    resetTools();
+    setIsKeypointOnOff((prev) => !prev);
+  };
+  const onCancelKeypoint = () => {
+    setIsKeypointOnOff(false);
+  };
 
   const toggleDrawPolygon = (options) => {
     if(!canvas) return;
@@ -549,7 +1503,6 @@ const LabelingContainer = () => {
         addPoint(options);
     }
   };
-  let objId = 0;
   const drawPolyItem = (tool: any, coordinate: any, type: any, color: any, aId: any, type_id: any) => {
     if(!canvas) return;
     let fill = 'transparent';
@@ -588,8 +1541,8 @@ const LabelingContainer = () => {
     tag.set('left', polyItem.left + polyItem.width / 2 - tag.width / 2);
     canvas.add(polyItem);
     canvas.add(tag);
-    polyItem.on('selected', selectObject);
-    polyItem.on('deselected', deselectObject);
+    polyItem.on('selected', handleSelectObject);
+    polyItem.on('deselected', handleDeSelectObject);
     //polyItem.on('modified', modifyObject);
     ObjectListItem.push(polyItem);
     TagListItem.push(tag);
@@ -942,773 +1895,6 @@ const LabelingContainer = () => {
     canvas.requestRenderAll();
   };
 
-  //*************** Header function **********************/
-
-  // ! Download image
-  const handleDownloadImage = () => {
-    // Todo: 다운로드 데이터 선택
-    if (selectedTask && currentDataURL && canvas) {
-      const a = document.createElement("a");
-      a.setAttribute("download", selectedTask.imageName);
-      //a.setAttribute("href", currentDataURL);
-      a.setAttribute("href", canvas.toDataURL({
-        //format: 'png',
-        quality: 1.0,
-        //multiplier: 1 / imgRatio,
-      }),
-    );
-      a.click();
-    }
-  };
-  // ! Toggle full screen
-  const handleToggleFullScreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-    } else if (document.exitFullscreen) {
-      document.exitFullscreen();
-    }
-  };
-  // ! Filtering only selected task's history
-  const getFilteredSelectedTask = (selectedTask: ITask): IDataURLHistory[] => {
-    return dataURLHistory.filter(
-      (history) => history.taskId === selectedTask.taskId
-    );
-  };
-  // ! Undo
-  const handleUnDo = () => {
-    if (selectedTask) {
-      const currentTaskHistory = getFilteredSelectedTask(selectedTask);
-      let pointer;
-      for (let i = 0; i < currentTaskHistory.length; i++) {
-        if (currentDataURL === currentTaskHistory[i].dataURL) {
-          if (currentTaskHistory[i].order === 0) {
-            return;
-          }
-          pointer = currentTaskHistory[i - 1].order;
-          break;
-        }
-      }
-      if (pointer !== undefined) {
-        setCurrentDataURL(currentTaskHistory[pointer].dataURL);
-      }
-    }
-  };
-  // ! Redo
-  const handleRedo = () => {
-    if (selectedTask) {
-      const currentTaskHistory = getFilteredSelectedTask(selectedTask);
-      let pointer;
-      for (let i = 0; i < currentTaskHistory.length; i++) {
-        if (currentDataURL === currentTaskHistory[i].dataURL) {
-          if (currentTaskHistory[i].order === currentTaskHistory.length - 1) {
-            return;
-          }
-          pointer = currentTaskHistory[i + 1].order;
-          break;
-        }
-      }
-      if (pointer !== undefined) {
-        setCurrentDataURL(currentTaskHistory[pointer].dataURL);
-      }
-    }
-  };
-  // ! Save (Update)
-  const saveData = async () => {
-    // TODO: 아래처럼 구현하면 업로드는 진행되는데 파일명이 blob.png로 떨어짐 이거는 추후 수정
-    // ! 서버에 상태 및 라벨링 데이터 저장 기능
-    /*if (currentDataURL) {
-      const file = dataUrlToBlob(currentDataURL);
-      let formdata = new FormData();
-      formdata.append("image", file);
-
-      if (pId && selectedTask) {
-        const res = await taskApi.updateTaskData(
-          { project_id: parseInt(pId), task_id: selectedTask.taskId },
-          formdata
-        );
-        if (res && res.status === 200) {
-          toast({
-            title: "Task Image 업데이트 완료",
-            status: "success",
-            position: "top",
-            duration: 2000,
-            isClosable: true,
-          });
-        }
-      }
-    }*/
-  };
-  const goBack = () => {
-    navigate(-1);
-  };
-
-  //*************** Main function **********************/
-  let ObjectListItem = [],
-    InstanceListItem = [],
-    AnnotationListItem = [],
-    TagListItem = [],
-    DeleteIDList = [],
-    instanceClass = "",
-    instanceGender = "",
-    instanceAge = "";
-
-  const resetTools = () => {
-    canvas.defaultCursor = "default";
-    canvas.hoverCursor = "crosshair";
-    setIsODOnOff(() => false);
-    setIsISOnOff(() => false);
-    setIsSESOnOff(() => false);
-    setIsSmartpenOnOff(() => false);
-    setIsAutopointOnOff(() => false);
-    setIsBoxingOnOff(() => false);
-    setIsPolylineOnOff(() => false);
-    setIsPolygonOnOff(() => false);
-    setIsPointOnOff(() => false);
-    setIsBrushOnOff(() => false);
-    setIs3DcubeOnOff(() => false);
-    setIsSegmentOnOff(() => false);
-    setIsKeypointOnOff(() => false);
-  }
-  const clearDatas = () => {
-    ObjectListItem = [];
-    InstanceListItem = [];
-    AnnotationListItem = [];
-    TagListItem = [];
-    instanceClass = "";
-    instanceGender = "";
-    instanceAge = "";
-    objId = 0;
-  }
-  const clearAutoLabeling = (tool: string) => {
-    for (let i = 0; i < ObjectListItem.length; i++) {
-      if (ObjectListItem[i].tool === tool) {
-        let id = ObjectListItem[i].id;
-
-        for (let j = 0; j < TagListItem.length; j++) {
-          let tag = TagListItem[j];
-          if (tag.id === id) {
-            canvas.remove(tag);
-            TagListItem.splice(j, 1);
-          }
-        }
-        for (let k = 0; k < InstanceListItem.length; k++) {
-          if (InstanceListItem[k].id === id) {
-            InstanceListItem.splice(k, 1);
-          }
-        }
-        for (let l = 0; l < AnnotationListItem.length; l++) {
-          if (AnnotationListItem[l].id === id) {
-            if (AnnotationListItem[l].annotation.annotation_id) {
-              DeleteIDList.push(
-                AnnotationListItem[l].annotation.annotation_id,
-              );
-              console.log(
-                AnnotationListItem[l].annotation.annotation_id,
-              );
-            } else {
-              console.log('no id');
-            }
-            AnnotationListItem.splice(l, 1);
-          }
-        }
-
-        canvas.remove(ObjectListItem[i]);
-        //this.ObjectListItem.splice(i, 1);
-      }
-    }
-    for (let i = 0; i < ObjectListItem.length; i++) {
-      if (ObjectListItem[i].tool === tool) {
-        ObjectListItem.splice(i, 1);
-      }
-    }
-  }
-
-  //**! resize  */
-  const [resizingVal, setResizingVal] = useState<string | null>(null);
-  const handleResizing = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setResizingVal(e.target.value);
-    zoomAdjustment(e.target.value);
-  };
-
-  const zoomAdjustment = (value: string) => {
-    if(canvas) {
-      let zoom = parseInt(value);
-      if(zoom < 10) zoom = 10;
-      zoom *= imgRatio;
-      let width = imgWidth * (zoom / 100);
-      let height = imgHeight * (zoom / 100);
-      console.log(width + ", " + height + ", " + imgRatio);
-      canvas.setWidth(width);
-      canvas.setHeight(height);
-      canvas.setZoom(zoom / 100);
-    }
-  };
-  /*const setZoomCenter = () => {
-    document.getElementById('zoom-range').value = 100;
-    canvas.setWidth(inWidth * imgRatio);
-    canvas.setHeight(inHeight * imgRatio);
-    canvas.setZoom(imgRatio);
-  };*/
-
-  //**! move */
-  const [isMoveOn, setIsMoveOnOff] = useState<boolean>(false);
-  const checkIsMove = () => {
-    setIsMoveOnOff((prev) => !prev);
-  };
-  const onCancelMove = () => {
-    setIsMoveOnOff(() => false);
-  };
-  useEffect(() => {
-    if(isMoveOn) {
-      canvas.hoverCursor = "move";
-    }
-  }, [isMoveOn]);
-  //**! tag */
-  const [isTagOn, setIsTagOnOff] = useState<boolean>(false);
-  const checkIsTag = () => {
-    setIsTagOnOff((prev) => !prev);
-  };
-  useEffect(() => {
-    if (!isTagOn) {
-      /*let items = this.fCanvas.getObjects();
-      for (let i = 0; i < items.length; i++) {
-        this.fCanvas.remove(this.TagListItem[i]);
-      }*/
-      for (let i = 0; i < TagListItem.length; i++) {
-        TagListItem[i].visible = false;
-      }
-    } else {
-      for (let i = 0; i < TagListItem.length; i++) {
-        //this.fCanvas.add(this.TagListItem[i]);
-        TagListItem[i].visible = true;
-      }
-    }
-    canvas.renderAll();
-  }, [isTagOn]);
-  //**! class */
-  const [isClassOn, setIsClassOnOff] = useState<boolean>(false);
-  const checkIsClass = () => {
-    // 클래스 팝업
-    setIsClassOnOff((prev) => !prev);
-  };
-  const onCancelClass = () => {
-    setIsClassOnOff(false);
-  };
-  //**! reset */
-  const [isResetOn, setIsResetOnOff] = useState<boolean>(false);
-  const checkIsReset = () => {
-    setIsResetOnOff((prev) => !prev);
-  };
-  const onCancelReset = () => {
-    setIsResetOnOff(false);
-  };
-  const onSubmitReset = () => {
-    // Todo: 리셋 초기화 내용 작업 필요
-    resetTools();
-    clearDatas();
-    canvas.clear();
-    setCanvasImage();
-    setIsResetOnOff(false);
-  };
-  //**! OD */
-  const [isODOn, setIsODOnOff] = useState<boolean>(false);
-  const checkIsOD = () => {
-    resetTools();
-    setIsODOnOff((prev) => !prev);
-  };
-  const [isISOn, setIsISOnOff] = useState<boolean>(false);
-  //**! IS */
-  const checkIsIS = () => {
-    resetTools();
-    setIsISOnOff((prev) => !prev);
-  };
-  //**! SES */
-  const [isSESOn, setIsSESOnOff] = useState<boolean>(false);
-  const checkIsSES = () => {
-    resetTools();
-    setIsSESOnOff((prev) => !prev);
-  };
-  //**! smartpen */
-  const [isSmartpenOn, setIsSmartpenOnOff] = useState<boolean>(false);
-  const checkIsSmartpen = () => {
-    resetTools();
-    setIsSmartpenOnOff(!isSmartpenOn);
-  };
-  const onCancelSmartpen = () => {
-    setIsSmartpenOnOff(false);
-  };
-  //**! autopoint */
-  let autoPointList = [];
-  const [isAutopointOn, setIsAutopointOnOff] = useState<boolean>(false);
-  const checkIsAutopoint = () => {
-    resetTools();
-    setIsAutopointOnOff((prev) => !prev);
-  };
-  const onCancelAutopoint = () => {
-    setIsAutopointOnOff(false);
-  };
-  useEffect(() => {
-    if(isAutopointOn && canvas) {
-      canvas.defaultCursor = "crosshair";
-      canvas.hoverCursor = "crosshair";
-      canvas.on("mouse:down", handlePointDown);
-      canvas.on("mouse:move", handlePointMove);
-      canvas.on("mouse:up", handleAutopointUp);
-    } else if(!isAutopointOn && canvas) {
-      canvas.off("mouse:down");
-      canvas.off("mouse:move");
-      canvas.off("mouse:up");
-    }
-  }, [isAutopointOn]);
-  const handleAutopointUp = (options: any) => {
-    if(!canvas || isSelectObject) return;
-    let pointer = canvas.getPointer(options);
-    endX = pointer.x;
-    endY = pointer.y;
-    drawPoints(pointer, "autopoint");
-  };
-  //**! boxing */
-  const [isBoxingOn, setIsBoxingOnOff] = useState<boolean>(false);
-  const checkIsBoxing = () => {
-    resetTools();
-    setIsBoxingOnOff((prev) => !prev);
-  };
-  useEffect(() => {
-    if(isBoxingOn && canvas) {
-      canvas.defaultCursor = "crosshair";
-      canvas.hoverCursor = "crosshair";
-      canvas.on("mouse:down", handleBoxingDown);
-      canvas.on("mouse:move", handleBoxingMove);
-      canvas.on("mouse:up", handleBoxingUp);
-    } else if(!isBoxingOn && canvas) {
-      canvas.off("mouse:down");
-      canvas.off("mouse:move");
-      canvas.off("mouse:up");
-    }
-  }, [isBoxingOn]);
-  let tempRect: fabric.Rect = null;
-  const handleBoxingDown = (options: any) => {
-    if(!canvas || isSelectObject) return;
-    let pointer = canvas.getPointer(options);
-    startX = pointer.x;
-    startY = pointer.y;
-    tempRect = new fabric.Rect({
-      left: pointer.x,
-      top: pointer.y,
-      width: 0,
-      height: 0,
-      strokeWidth: 2 * (1 / imgRatio),
-      stroke: 'rgba(0,0,0,0.3)',
-      strokeDashArray: [5 * (1 / imgRatio), 5 * (1 / imgRatio)],
-      fill: 'transparent',
-    });
-    canvas.add(tempRect);
-    isDown = true;
-  };
-  const handleBoxingMove = (options: any) => {
-    if(!canvas || !isDown || isSelectObject) return;
-    let pointer = canvas.getPointer(options);
-    setDragBox(pointer.x, pointer.y);
-  };
-  const handleBoxingUp = (options: any) => {
-    if(!canvas || isSelectObject) return;
-    let pointer = canvas.getPointer(options);
-    endX = pointer.x;
-    endY = pointer.y;
-    if (
-      Math.abs(endX - startX) > 1 &&
-      Math.abs(endY - startY) > 1
-    ) {
-      setRect();
-      //this.drawBoxing();
-    }
-    isDown = false;
-  };
-  const setDragBox = (nowX, nowY) => {
-    let rTop, rLeft, rBottom, rRight;
-    if (startX > nowX) {
-      rLeft = nowX;
-      rRight = startX;
-    } else {
-      rLeft = startX;
-      rRight = nowX;
-    }
-    if (startY > nowY) {
-      rTop = nowY;
-      rBottom = startY;
-    } else {
-      rTop = startY;
-      rBottom = nowY;
-    }
-    instanceWidth = rRight - rLeft;
-    instanceHeight = rBottom - rTop;
-    positionX = rLeft;
-    positionY = rTop;
-
-    if(tempRect)
-      tempRect.set({
-        left: positionX,
-        top: positionY,
-        width: rRight - rLeft,
-        height: rBottom - rTop,
-      });
-    //this.DragRectListItem.push(rect);
-    canvas.renderAll();
-  }
-  const setRect = () => {
-    let rTop, rLeft, rBottom, rRight;
-    if (startX > endX) {
-      rLeft = endX;
-      rRight = startX;
-    } else {
-      rLeft = startX;
-      rRight = endX;
-    }
-    if (startY > endY) {
-      rTop = endY;
-      rBottom = startY;
-    } else {
-      rTop = startY;
-      rBottom = endY;
-    }
-    instanceWidth = rRight - rLeft;
-    instanceHeight = rBottom - rTop;
-    positionX = rLeft;
-    positionY = rTop;
-    let coordinate = {
-      left: positionX,
-      top: positionY,
-      width: rRight - rLeft,
-      height: rBottom - rTop,
-    };
-    //console.log(coordinate);
-    drawBoxing('bbox', coordinate, '#000000', null);
-  }
-  const drawBoxing = (tool, coordinate, color, aId) => {
-    canvas.remove(tempRect);
-    let optionRect = {
-      id: objId,
-      tool: tool,
-      color: color,
-      left: coordinate.left,
-      top: coordinate.top,
-      width: coordinate.width,
-      height: coordinate.height,
-      strokeWidth: 2 * (1 / imgRatio),
-      //stroke: 'rgba(0,0,0,0.5)',
-      stroke: color,
-      //strokeOpacity: '.5',
-      fill: 'transparent',
-      //fill: 'rgba(0,0,0,0.3)',
-      //fill: color,
-      //fillOpacity: '.3',
-      //strokeDashArray: [5, 5],
-      hoverCursor: 'pointer',
-      objectCaching: false,
-    };
-    let rect = new fabric.Rect(optionRect);
-    rect.on('selected', selectObject);
-    rect.on('deselected', deselectObject);
-    let optionTag = {
-      id: objId,
-      fill: '#ffffff',
-      //textBackgroundColor: 'grey',
-      fontFamily: 'Comic Sans',
-      fontSize: 10 * (1 / imgRatio),
-      visible: isTagOn,
-    };
-    let tag = new fabric.Text('human ' + objId, optionTag);
-
-    tag.set('top', rect.top + rect.height / 2 - tag.height / 2);
-    tag.set('left', rect.left + rect.width / 2 - tag.width / 2);
-    ObjectListItem.push(rect);
-    TagListItem.push(tag);
-    canvas.add(rect);
-    canvas.add(tag);
-    //this.fCanvas.setActiveObject(rect);
-    InstanceListItem.push({
-      id: objId, //category id
-      tool: tool,
-      cId: 0, //AnnotationListItem id
-      className: 'human',
-      gender: '',
-      age: '',
-      attrs: [],
-    });
-    //console.log(this.InstanceListItem);
-    AnnotationListItem.push({
-      id: objId,
-      annotation: {
-        annotation_id: aId,
-        annotation_type: {
-          annotation_type_id: 1,
-        },
-        annotation_category: {
-          annotation_category_id: 0,
-          annotation_category_attributes: [],
-        },
-        annotation_data: [rect.left, rect.top, rect.width, rect.height],
-      },
-    });
-    //console.log(this.AnnotationListItem);
-    //this.setDataImage();
-    objId++;
-  }
-  //**! polyline */
-  const [isPolylineOn, setIsPolylineOnOff] = useState<boolean>(false);
-  const checkIsPolyline = () => {
-    resetTools();
-    setIsPolylineOnOff((prev) => !prev);
-  };
-  useEffect(() => {
-    if(isPolylineOn) {
-      canvas.hoverCursor = "crosshair";
-    }
-  }, [isPolylineOn]);
-  //**! polygon */
-  const [isPolygonOn, setIsPolygonOnOff] = useState<boolean>(false);
-  const checkIsPolygon = () => {
-    resetTools();
-    setIsPolygonOnOff((prev) => !prev);
-  };
-  useEffect(() => {
-    if(isPolygonOn && canvas) {
-      canvas.defaultCursor = "crosshair";
-      canvas.hoverCursor = "crosshair";
-      canvas.on("mouse:down", handlePolygonDown);
-      canvas.on("mouse:move", handlePolyItemMove);
-      canvas.on("mouse:up", handlePolyItemUp);
-    } else if(!isPolygonOn && canvas) {
-      canvas.off("mouse:down");
-      canvas.off("mouse:move");
-      canvas.off("mouse:up");
-    }
-  }, [isPolygonOn]);
-  const handlePolygonDown = (options: any) => {
-    if(!canvas || isSelectObject) return;
-    if (drawMode) {
-      if (options.target && pointArray.length > 0 && options.target.id === pointArray[0].id) {
-        // when click on the first point
-        generatePolygon(pointArray, "polygon", "#0084ff");
-      } else {
-        addPoint(options);
-      }
-    } else {
-      toggleDrawPolygon(options);
-    }
-  };
-  const handlePolyItemMove = (options: any) => {
-    if(!canvas || isSelectObject) return;
-    let pointer = canvas.getPointer(options);
-    if (drawMode) {
-      if (activeLine && activeLine.type === 'line') {
-        activeLine.set({
-          x2: pointer.x,
-          y2: pointer.y,
-        });
-        const points = activeShape.get('points');
-        points[pointArray.length] = {
-          x: pointer.x,
-          y: pointer.y,
-        };
-        activeShape.set({
-          points,
-        });
-      }
-      canvas.renderAll();
-    }
-  };
-  const handlePolyItemUp = (options: any) => {
-    if(!canvas || isSelectObject) return;
-    isDragging = false;
-    selection = true;
-  };
-  //**! point */
-  const [isPointOn, setIsPointOnOff] = useState<boolean>(false);
-  const checkIsPoint = () => {
-    resetTools();
-    setIsPointOnOff((prev) => !prev);
-  };
-  useEffect(() => {
-    if(isPointOn && canvas) {
-      canvas.defaultCursor = "crosshair";
-      canvas.hoverCursor = "crosshair";
-      canvas.on("mouse:down", handlePointDown);
-      canvas.on("mouse:move", handlePointMove);
-      canvas.on("mouse:up", handlePointUp);
-    } else if(!isPointOn && canvas) {
-      canvas.off("mouse:down");
-      canvas.off("mouse:move");
-      canvas.off("mouse:up");
-    }
-  }, [isPointOn]);
-  const handlePointDown = (options: any) => {
-    if(!canvas || isSelectObject) return;
-    let pointer = canvas.getPointer(options);
-    startX = pointer.x;
-    startY = pointer.y;
-  };
-  const handlePointMove = (options: any) => {
-    if(!canvas || !isDown || isSelectObject) return;
-    let pointer = canvas.getPointer(options);
-  };
-  const handlePointUp = (options: any) => {
-    if(!canvas || isSelectObject) return;
-    let pointer = canvas.getPointer(options);
-    endX = pointer.x;
-    endY = pointer.y;
-    drawPoints(pointer, "point");
-  };
-  const drawPoints = (point: any, type: string) => {
-    if(type === "point") {
-      let optionPoint = {
-        id: objId,
-        radius: 4 / imgRatio,
-        stroke: 'black',
-        strokeWidth: 1 / imgRatio,
-        color: '#ff0000',
-        fill: '#ff0000',
-        //startAngle: 0,
-        //endAngle: 2,
-        left: point.x,
-        top: point.y,
-        hasBorders: false,
-        //hasControls: false,
-        cornerSize: 5 / imgRatio,
-        originX: 'center',
-        originY: 'center',
-        hoverCursor: 'pointer',
-        selectable: true,
-      };
-      let boxingPoint = new fabric.Circle(optionPoint);
-      boxingPoint.on('selected', selectObject);
-      boxingPoint.on('deselected', deselectObject);
-      canvas.add(boxingPoint);
-      ObjectListItem.push(boxingPoint);
-      //this.fCanvas.setActiveObject(polyItem);
-      InstanceListItem.push({
-        id: objId, //category id
-        tool: 'point',
-        cId: 0, //AnnotationListItem id
-        className: 'human',
-        gender: '',
-        age: '',
-        attrs: [],
-      });
-      //console.log(this.InstanceListItem);
-      AnnotationListItem.push({
-        id: objId,
-        annotation: {
-          annotation_type: {
-            annotation_type_id: 5,
-          },
-          annotation_category: {
-            annotation_category_id: 0,
-            annotation_category_attributes: [],
-          },
-          annotation_data: [point.x, point.y],
-        },
-      });
-      objId++;
-
-    } else if (type === "autopoint") {
-      let optionAutopoint = {
-        id: objId,
-        radius: 7 / imgRatio,
-        stroke: 'black',
-        strokeWidth: 1 / imgRatio,
-        color: '#999999',
-        fill: '#ffcc00',
-        //startAngle: 0,
-        //endAngle: 2,
-        left: point.x,
-        top: point.y,
-        hasBorders: false,
-        hasControls: false,
-        cornerSize: 5 / imgRatio,
-        originX: 'center',
-        originY: 'center',
-        hoverCursor: 'pointer',
-        selectable: true,
-      };
-      let autoPoint = new fabric.Circle(optionAutopoint);
-      autoPointList.push(autoPoint);
-      canvas.add(autoPoint);
-      if (autoPointList.length === 2) {
-        let ePoint = autoPointList.pop();
-        let sPoint = autoPointList.pop();
-        startX = sPoint.left;
-        startY = sPoint.top;
-        endX = ePoint.left;
-        endY = ePoint.top;
-        //console.log(ePoint);
-        //console.log(sPoint);
-        canvas.remove(ePoint);
-        canvas.remove(sPoint);
-        setRect();
-      }
-    }
-  }
-  //**! brush */
-  const [isBrushOn, setIsBrushOnOff] = useState<boolean>(false);
-  const checkIsBrush = () => {
-    resetTools();
-    setIsBrushOnOff((prev) => !prev);
-  };
-  const onCancelBrush = () => {
-    setIsBrushOnOff(false);
-  };
-  //**! 3Dcube */
-  const [is3DcubeOn, setIs3DcubeOnOff] = useState<boolean>(false);
-  const checkIs3Dcube = () => {
-    resetTools();
-    setIs3DcubeOnOff((prev) => !prev);
-  };
-  const onCancel3Dcube = () => {
-    setIs3DcubeOnOff(false);
-  };
-  //**! segment */
-  const [isSegmentOn, setIsSegmentOnOff] = useState<boolean>(false);
-  const checkIsSegment = () => {
-    resetTools();
-    setIsSegmentOnOff((prev) => !prev);
-  };
-  useEffect(() => {
-    if(isSegmentOn && canvas) {
-      canvas.defaultCursor = "crosshair";
-      canvas.hoverCursor = "crosshair";
-      canvas.on("mouse:down", handleSegmentDown);
-      canvas.on("mouse:move", handlePolyItemMove);
-      canvas.on("mouse:up", handlePolyItemUp);
-    } else if(!isSegmentOn && canvas) {
-      canvas.off("mouse:down");
-      canvas.off("mouse:move");
-      canvas.off("mouse:up");
-    }
-  }, [isSegmentOn]);
-  const handleSegmentDown = (options: any) => {
-    if(!canvas || isSelectObject) return;
-    if (drawMode) {
-      if (options.target && pointArray.length > 0 && options.target.id === pointArray[0].id) {
-        // when click on the first point
-        generatePolygon(pointArray, "segment", "#eecc55");
-      } else {
-        addPoint(options);
-      }
-    } else {
-      toggleDrawPolygon(options);
-    }
-  };
-  //**! keypoint */
-  const [isKeypointOn, setIsKeypointOnOff] = useState<boolean>(false);
-  const checkIsKeypoint = () => {
-    resetTools();
-    setIsKeypointOnOff((prev) => !prev);
-  };
-  const onCancelKeypoint = () => {
-    setIsKeypointOnOff(false);
-  };
-
   //**! original image */
   const onOriginalImage = () => {
     if (selectedTask) {
@@ -1842,9 +2028,27 @@ const LabelingContainer = () => {
         checkIsBrush={checkIsBrush}
         checkIs3Dcube={checkIs3Dcube}
         checkIsSegment={checkIsSegment}
-        checkIsKeypoint={checkIsKeypoint} 
+        checkIsKeypoint={checkIsKeypoint}
         canvas={canvas}
-        />
+        _setDownload={_setDownload}
+        onCancelDownload={onCancelDownload}
+        onSubmitDownload={onSubmitDownload}
+        checkIsDownload={checkIsDownload}
+        setIsClass={setIsClass}
+        isDownloadOn={isDownloadOn}
+        isDownload={isDownload}
+        selectDownload={selectDownload} 
+        labelWidth={labelWidth} 
+        labelHeight={labelHeight} 
+        labelDiag={labelDiag} 
+        labelCoordX={labelCoordX} 
+        labelCoordY={labelCoordY} 
+        labelPerWidth={labelPerWidth} 
+        labelPerHeight={labelPerHeight} 
+        labelPerDiag={labelPerDiag}      
+        InstanceListItem={InstanceListItem}
+        isAutoLabelingOn={isAutoLabelingOn}
+      />
     );
   }
   return null;

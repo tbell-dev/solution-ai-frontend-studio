@@ -16,6 +16,7 @@ interface IModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: () => void;
+  txtSubmit: string;
   loading?: boolean;
   children: JSX.Element;
   removeEffect?: boolean;
@@ -29,6 +30,7 @@ const Modal: React.FC<IModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
+  txtSubmit,
   loading,
   children,
   removeEffect = false,
@@ -91,7 +93,7 @@ const Modal: React.FC<IModalProps> = ({
               width={"80px"}
               height={"35px"}
             >
-              적용
+              {txtSubmit}
             </Button>
           </ModalFooter>
         </ModalContent>

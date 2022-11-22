@@ -13,45 +13,50 @@ import iconDo from "../../../assets/images/studio/header/icon-do-gray.svg";
 import iconClose from "../../../assets/images/studio/icon/icon-close.svg";
 import iconZoomDec from "../../../assets/images/studio/header/icon-zoom-dec.svg";
 import iconZoomInc from "../../../assets/images/studio/header/icon-zoom-inc.svg";
-import iconMove from "../../../assets/images/studio/icon/icon-move-dark.svg";
-import iconMoveSelected from "../../../assets/images/studio/icon/icon-move-selected.svg";
-import iconTag from "../../../assets/images/studio/icon/icon-tag-dark.svg";
-import iconTagSelected from "../../../assets/images/studio/icon/icon-tag-selected.svg";
-import iconClass from "../../../assets/images/studio/icon/icon-class-dark.svg";
-import iconClassSelected from "../../../assets/images/studio/icon/icon-class-selected.svg";
-import iconReset from "../../../assets/images/studio/icon/icon-reset-dark.svg";
-import iconResetSelected from "../../../assets/images/studio/icon/icon-reset-selected.svg";
-import iconOD from "../../../assets/images/studio/icon/icon-OD-dark.svg";
-import iconODActive from "../../../assets/images/studio/icon/icon-OD-active.svg";
-import iconODSelected from "../../../assets/images/studio/icon/icon-OD-selected.svg";
-import iconIS from "../../../assets/images/studio/icon/icon-IS-dark.svg";
-import iconISActive from "../../../assets/images/studio/icon/icon-IS-active.svg";
-import iconISSelected from "../../../assets/images/studio/icon/icon-IS-selected.svg";
-import iconSES from "../../../assets/images/studio/icon/icon-SES-dark.svg";
-import iconSESActive from "../../../assets/images/studio/icon/icon-SES-active.svg";
-import iconSESSelected from "../../../assets/images/studio/icon/icon-SES-selected.svg";
-import iconSmartpen from "../../../assets/images/studio/icon/icon-smartpen-dark.svg";
-import iconSmartpenSelected from "../../../assets/images/studio/icon/icon-smartpen-selected.svg";
-import iconAutopoint from "../../../assets/images/studio/icon/icon-autopoint-dark.svg";
-import iconAutopointSelected from "../../../assets/images/studio/icon/icon-autopoint-selected.svg";
-import iconBoxing from "../../../assets/images/studio/icon/icon-boxing-dark.svg";
-import iconBoxingSelected from "../../../assets/images/studio/icon/icon-boxing-selected.svg";
-import iconPolyline from "../../../assets/images/studio/icon/icon-polyline-dark.svg";
-import iconPolylineSelected from "../../../assets/images/studio/icon/icon-polyline-selected.svg";
-import iconPolygon from "../../../assets/images/studio/icon/icon-polygon-dark.svg";
-import iconPolygonSelected from "../../../assets/images/studio/icon/icon-polygon-selected.svg";
-import iconPoint from "../../../assets/images/studio/icon/icon-point-dark.svg";
-import iconPointSelected from "../../../assets/images/studio/icon/icon-point-selected.svg";
-import iconBrush from "../../../assets/images/studio/icon/icon-brush-group-dark.svg";
-import iconBrushSelected from "../../../assets/images/studio/icon/icon-brush-group-selected.svg";
-import icon3Dcube from "../../../assets/images/studio/icon/icon-3dcube-dark.svg";
-import icon3DcubeSelected from "../../../assets/images/studio/icon/icon-3dcube-selected.svg";
-import iconSegment from "../../../assets/images/studio/icon/icon-segment-dark.svg";
-import iconSegmentSelected from "../../../assets/images/studio/icon/icon-segment-selected.svg";
-import iconKeypoint from "../../../assets/images/studio/icon/icon-keypoint-dark.svg";
-import iconKeypointSelected from "../../../assets/images/studio/icon/icon-keypoint-selected.svg";
+import iconToolMove from "../../../assets/images/studio/icon/icon-move-dark.svg";
+import iconToolMoveSelected from "../../../assets/images/studio/icon/icon-move-selected.svg";
+import iconToolTag from "../../../assets/images/studio/icon/icon-tag-dark.svg";
+import iconToolTagSelected from "../../../assets/images/studio/icon/icon-tag-selected.svg";
+import iconToolClass from "../../../assets/images/studio/icon/icon-class-dark.svg";
+import iconToolClassSelected from "../../../assets/images/studio/icon/icon-class-selected.svg";
+import iconToolReset from "../../../assets/images/studio/icon/icon-reset-dark.svg";
+import iconToolResetSelected from "../../../assets/images/studio/icon/icon-reset-selected.svg";
+import iconToolOD from "../../../assets/images/studio/icon/icon-OD-dark.svg";
+import iconToolODActive from "../../../assets/images/studio/icon/icon-OD-active.svg";
+import iconToolODSelected from "../../../assets/images/studio/icon/icon-OD-selected.svg";
+import iconToolIS from "../../../assets/images/studio/icon/icon-IS-dark.svg";
+import iconToolISActive from "../../../assets/images/studio/icon/icon-IS-active.svg";
+import iconToolISSelected from "../../../assets/images/studio/icon/icon-IS-selected.svg";
+import iconToolSES from "../../../assets/images/studio/icon/icon-SES-dark.svg";
+import iconToolSESActive from "../../../assets/images/studio/icon/icon-SES-active.svg";
+import iconToolSESSelected from "../../../assets/images/studio/icon/icon-SES-selected.svg";
+import iconToolSmartpen from "../../../assets/images/studio/icon/icon-smartpen-dark.svg";
+import iconToolSmartpenSelected from "../../../assets/images/studio/icon/icon-smartpen-selected.svg";
+import iconToolAutopoint from "../../../assets/images/studio/icon/icon-autopoint-dark.svg";
+import iconToolAutopointSelected from "../../../assets/images/studio/icon/icon-autopoint-selected.svg";
+import iconToolBoxing from "../../../assets/images/studio/icon/icon-boxing-dark.svg";
+import iconToolBoxingSelected from "../../../assets/images/studio/icon/icon-boxing-selected.svg";
+import iconToolPolyline from "../../../assets/images/studio/icon/icon-polyline-dark.svg";
+import iconToolPolylineSelected from "../../../assets/images/studio/icon/icon-polyline-selected.svg";
+import iconToolPolygon from "../../../assets/images/studio/icon/icon-polygon-dark.svg";
+import iconToolPolygonSelected from "../../../assets/images/studio/icon/icon-polygon-selected.svg";
+import iconToolPoint from "../../../assets/images/studio/icon/icon-point-dark.svg";
+import iconToolPointSelected from "../../../assets/images/studio/icon/icon-point-selected.svg";
+import iconToolBrush from "../../../assets/images/studio/icon/icon-brush-group-dark.svg";
+import iconToolBrushSelected from "../../../assets/images/studio/icon/icon-brush-group-selected.svg";
+import iconTool3Dcube from "../../../assets/images/studio/icon/icon-3dcube-dark.svg";
+import iconTool3DcubeSelected from "../../../assets/images/studio/icon/icon-3dcube-selected.svg";
+import iconToolSegment from "../../../assets/images/studio/icon/icon-segment-dark.svg";
+import iconToolSegmentSelected from "../../../assets/images/studio/icon/icon-segment-selected.svg";
+import iconToolKeypoint from "../../../assets/images/studio/icon/icon-keypoint-dark.svg";
+import iconToolKeypointSelected from "../../../assets/images/studio/icon/icon-keypoint-selected.svg";
 import iconArrowTop from "../../../assets/images/studio/icon/icon-scroll-up-dark.svg";
-import iconArrowBottom from "../../../assets/images/studio/icon/icon-scroll-down-dark.svg"
+import iconArrowBottom from "../../../assets/images/studio/icon/icon-scroll-down-dark.svg";
+import iconLock from "../../../assets/images/studio/icon/icon-lock01.svg";
+import iconVisible from "../../../assets/images/studio/icon/icon-visibility01.svg";
+import iconDelete from "../../../assets/images/studio/icon/icon-delete01.svg";
+import iconBoxingOn from "../../../assets/images/studio/icon/icon-boxing02.svg";
+import iconBoxingOff from "../../../assets/images/studio/icon/icon-boxing03.svg";
 import arrowUp from "../../../assets/images/studio/icon/icon-up.svg";
 import arrowDown from "../../../assets/images/studio/icon/icon-down.svg";
 import { Link } from "react-router-dom";
@@ -114,6 +119,9 @@ interface ILabelingPresenter {
     ) => MouseEventHandler<HTMLImageElement> | undefined;
     effectLoading: boolean;
     isCanvasOn: boolean;
+    _setDownload: (file: string) => void;
+    onCancelDownload: () => void;
+    onSubmitDownload: () => void;
     onCancelMove: () => void;
     onCancelClass: () => void;
     onCancelReset: () => void;
@@ -132,6 +140,7 @@ interface ILabelingPresenter {
     handleRedo: () => void;
     saveData: () => Promise<void>;
     goBack: () => void;
+    checkIsDownload: () => void;
     checkIsMove: () => void;
     checkIsTag: () => void;
     checkIsClass: () => void;
@@ -149,6 +158,10 @@ interface ILabelingPresenter {
     checkIs3Dcube: () => void;
     checkIsSegment: () => void;
     checkIsKeypoint: () => void;
+    setIsClass: (index: number) => void;
+    isDownload: string;
+    selectDownload: string;
+    isDownloadOn: boolean;
     isMoveOn: boolean;
     isTagOn: boolean;
     isClassOn: boolean;
@@ -167,6 +180,16 @@ interface ILabelingPresenter {
     isSegmentOn: boolean;
     isKeypointOn: boolean;
     canvas: fabric.Canvas | undefined;
+    labelWidth: number; 
+    labelHeight: number;  
+    labelDiag: string;  
+    labelCoordX: number;  
+    labelCoordY: number; 
+    labelPerWidth: string; 
+    labelPerHeight: string; 
+    labelPerDiag: string;
+    InstanceListItem: any[];
+    isAutoLabelingOn: boolean;
   }
   
   const StudioWrapper = styled.div`
@@ -211,8 +234,6 @@ interface ILabelingPresenter {
     display: flex;
   `;
   const HeaderCenterLeft = styled.div`
-
-
     width: 20%;
     height: 100%;
   `;
@@ -536,6 +557,14 @@ interface ILabelingPresenter {
     padding: 20px;
     display: flex;
   `;
+  const DropBoxInstanceDescWrapper = styled.div`
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+  `;
+  const DropBoxInstanceDescRow = styled.div`
+    display: flex;
+  `;
   const DropBoxContentDescLeft = styled.div`
     display: flex;
     flex-direction: column;
@@ -544,6 +573,10 @@ interface ILabelingPresenter {
   const DropBoxContentDescRight = styled.div`
     display: flex;
     flex-direction: column;
+  `;
+  const DropBoxInstanceItem = styled.div`
+    padding: 20px;
+    display: flex;
   `;
   const MainRightBottom = styled.div`
     display: flex;
@@ -643,6 +676,9 @@ interface ILabelingPresenter {
     isFirst,
     isCanvasOn,
     resizingVal,
+    isDownloadOn,
+    isDownload,
+    selectDownload,
     isMoveOn,
     isTagOn,
     isClassOn,
@@ -660,6 +696,16 @@ interface ILabelingPresenter {
     is3DcubeOn,
     isSegmentOn,
     isKeypointOn,
+    labelWidth, 
+    labelHeight, 
+    labelDiag, 
+    labelCoordX, 
+    labelCoordY,
+    labelPerWidth, 
+    labelPerHeight, 
+    labelPerDiag,
+    InstanceListItem,
+    isAutoLabelingOn,
     _setLabelingAssignee,
     _setExaminee,
     toggleFileInfoOpen,
@@ -669,6 +715,9 @@ interface ILabelingPresenter {
     _setSelectedTask,
     handlePrevTask,
     handleNextTask,
+    _setDownload,
+    onCancelDownload,
+    onSubmitDownload,
     onCancelMove,
     onCancelClass,
     onCancelReset,
@@ -686,6 +735,7 @@ interface ILabelingPresenter {
     handleRedo,
     saveData,
     goBack,
+    checkIsDownload,
     checkIsMove,
     checkIsTag,
     checkIsClass,
@@ -703,6 +753,7 @@ interface ILabelingPresenter {
     checkIs3Dcube,
     checkIsSegment,
     checkIsKeypoint,
+    setIsClass,
   }) => {
     return (
       <>
@@ -719,13 +770,94 @@ interface ILabelingPresenter {
                 </NavLink>
                 <NavButton
                   style={{ cursor: "pointer" }}
-                  onClick={handleDownloadImage}
+                  //onClick={handleDownloadImage}
+                  onClick={checkIsDownload}
                 >
                   <Icon
                     src={iconLink}
                     alt="icon-download"
                     style={{ width: 17.38, height: 17.67 }}
                   />
+                  <Modal
+                    isOpen={isDownloadOn}
+                    onClose={onCancelDownload}
+                    title={"산출물 내보내기"}
+                    txtSubmit={"내려받기"}
+                    onSubmit={onSubmitDownload}
+                  >
+                    <>
+                      <Menu>
+                        {({ isOpen }) => (
+                          <>
+                            <MenuButton
+                              display={"flex"}
+                              flexDirection={"row"}
+                              alignItems={"center"}
+                              bgColor={"#e2e4e7"}
+                              border={"1px"}
+                              borderColor={"#c0c3c7"}
+                              borderRadius={"none"}
+                              width={"100%"}
+                              _focus={{ bgColor: "#e2e4e7" }}
+                              _hover={{ bgColor: "#e2e4e7" }}
+                              _expanded={{ bgColor: "#e2e4e7" }}
+                              isActive={isOpen}
+                              as={Button}
+                              rightIcon={
+                                isOpen ? (
+                                  <Icon src={arrowUp} />
+                                ) : (
+                                  <Icon src={arrowDown} />
+                                )
+                              }
+                            >
+                              <DropBoxTextWrapper>
+                                <DropBoxNormalText style={{ height: 20 }}>
+                                  {isDownload !== ""? selectDownload:"다운로드할 파일 형식을 선택해주세요."}
+                                </DropBoxNormalText>
+                              </DropBoxTextWrapper>
+                            </MenuButton>
+                            <MenuList
+                              bgColor={"#e2e4e7"}
+                              border={"1px"}
+                              alignItems={"center"}
+                              width={"100%"}
+                              borderColor={"#c0c3c7"}
+                              borderRadius={"none"}
+                            >
+                              <MenuItem
+                                _hover={{ bgColor: "#CFD1D4" }}
+                                _focusWithin={{ bgColor: "#CFD1D4" }}
+                                onClick={() => _setDownload("coco")}
+                              >
+                                <DropBoxNormalText style={{ height: 20 }}>
+                                  {"COCO Dataset Format"}
+                                </DropBoxNormalText>
+                              </MenuItem>
+                              <MenuItem
+                                _hover={{ bgColor: "#CFD1D4" }}
+                                _focusWithin={{ bgColor: "#CFD1D4" }}
+                                onClick={() => _setDownload("yolo")}
+                              >
+                                <DropBoxNormalText style={{ height: 20 }}>
+                                  {"YOLO Dataset Format"}
+                                </DropBoxNormalText>
+                              </MenuItem>
+                              <MenuItem
+                                _hover={{ bgColor: "#CFD1D4" }}
+                                _focusWithin={{ bgColor: "#CFD1D4" }}
+                                onClick={() => _setDownload("image")}
+                              >
+                                <DropBoxNormalText style={{ height: 20 }}>
+                                  {"Image"}
+                                </DropBoxNormalText>
+                              </MenuItem>
+                            </MenuList>
+                          </>
+                        )}
+                      </Menu>
+                    </>
+                  </Modal>
                 </NavButton>
                 <NavButton 
                   style={{ cursor: "pointer" }} 
@@ -872,7 +1004,7 @@ interface ILabelingPresenter {
                 <MainLeft>
                   <LeftItemContainer onClick={checkIsMove}>
                     <Icon
-                      src={isMoveOn ? iconMoveSelected : iconMove}
+                      src={isMoveOn ? iconToolMoveSelected : iconToolMove}
                     />
                     <LeftItemText>이동</LeftItemText>
                     <AlertModal
@@ -889,13 +1021,13 @@ interface ILabelingPresenter {
                   </LeftItemContainer>
                   <LeftItemContainer onClick={checkIsTag}>
                     <Icon
-                      src={isTagOn ? iconTagSelected : iconTag}
+                      src={isTagOn ? iconToolTagSelected : iconToolTag}
                     />
                     <LeftItemText>태그</LeftItemText>
                   </LeftItemContainer>
                   <LeftItemContainer onClick={checkIsClass}>
                     <Icon
-                      src={isClassOn ? iconClassSelected : iconClass}
+                      src={isClassOn ? iconToolClassSelected : iconToolClass}
                     />
                     <LeftItemText>클래스</LeftItemText>
                     <>
@@ -960,13 +1092,14 @@ interface ILabelingPresenter {
                   </LeftItemContainer>
                   <LeftItemContainer onClick={checkIsReset}>
                     <Icon
-                      src={isResetOn ? iconResetSelected : iconReset}
+                      src={isResetOn ? iconToolResetSelected : iconToolReset}
                     />
                     <LeftItemText>리셋</LeftItemText>
                     <Modal
                       isOpen={isResetOn}
                       onClose={onCancelReset}
                       title={"리셋"}
+                      txtSubmit={"확인"}
                       onSubmit={onSubmitReset}
                     >
                       <>
@@ -979,25 +1112,25 @@ interface ILabelingPresenter {
                   <UnderBar></UnderBar>
                   <LeftItemContainer onClick={checkIsOD}>
                     <Icon
-                      src={isODOn ? iconODSelected : iconOD}
+                      src={isAutoLabelingOn ? isODOn ? iconToolODSelected : iconToolODActive : iconToolOD}
                     />
                     <LeftItemText>OD</LeftItemText>
                   </LeftItemContainer>
                   <LeftItemContainer onClick={checkIsIS}>
                     <Icon
-                      src={isISOn ? iconISSelected : iconIS}
+                      src={isAutoLabelingOn ? isISOn ? iconToolISSelected : iconToolISActive : iconToolIS}
                     />
                     <LeftItemText>IS</LeftItemText>
                   </LeftItemContainer>
                   <LeftItemContainer onClick={checkIsSES}>
                     <Icon
-                      src={isSESOn ? iconSESSelected : iconSES}
+                      src={isAutoLabelingOn ? isSESOn ? iconToolSESSelected : iconToolSESActive : iconToolSES}
                     />
                     <LeftItemText>SES</LeftItemText>
                   </LeftItemContainer>
                   <LeftItemContainer onClick={checkIsSmartpen}>
                     <Icon
-                      src={isSmartpenOn ? iconSmartpenSelected : iconSmartpen}
+                      src={isSmartpenOn ? iconToolSmartpenSelected : iconToolSmartpen}
                     />
                     <LeftItemText>스마트펜</LeftItemText>
                     <AlertModal
@@ -1014,7 +1147,7 @@ interface ILabelingPresenter {
                   </LeftItemContainer>
                   <LeftItemContainer onClick={checkIsAutopoint}>
                     <Icon
-                      src={isAutopointOn ? iconAutopointSelected : iconAutopoint}
+                      src={isAutopointOn ? iconToolAutopointSelected : iconToolAutopoint}
                     />
                     <LeftItemText>오토포인트</LeftItemText>
                     {/* <AlertModal
@@ -1032,31 +1165,31 @@ interface ILabelingPresenter {
                   <UnderBar></UnderBar>
                   <LeftItemContainer onClick={checkIsBoxing}>
                     <Icon
-                      src={isBoxingOn ? iconBoxingSelected : iconBoxing}
+                      src={isBoxingOn ? iconToolBoxingSelected : iconToolBoxing}
                     />
                     <LeftItemText>박싱</LeftItemText>
                   </LeftItemContainer>
                   <LeftItemContainer onClick={checkIsPolyline}>
                     <Icon
-                      src={isPolylineOn ? iconPolylineSelected : iconPolyline}
+                      src={isPolylineOn ? iconToolPolylineSelected : iconToolPolyline}
                     />
                     <LeftItemText>폴리라인</LeftItemText>
                   </LeftItemContainer>
                   <LeftItemContainer onClick={checkIsPolygon}>
                     <Icon
-                      src={isPolygonOn ? iconPolygonSelected : iconPolygon}
+                      src={isPolygonOn ? iconToolPolygonSelected : iconToolPolygon}
                     />
                     <LeftItemText>폴리곤</LeftItemText>
                   </LeftItemContainer>
                   <LeftItemContainer onClick={checkIsPoint}>
                     <Icon
-                      src={isPointOn ? iconPointSelected : iconPoint}
+                      src={isPointOn ? iconToolPointSelected : iconToolPoint}
                     />
                     <LeftItemText>포인트</LeftItemText>
                   </LeftItemContainer>
                   <LeftItemContainer onClick={checkIsBrush}>
                     <Icon
-                      src={isBrushOn ? iconBrushSelected : iconBrush}
+                      src={isBrushOn ? iconToolBrushSelected : iconToolBrush}
                     />
                     <LeftItemText>브러쉬</LeftItemText>
                     <AlertModal
@@ -1073,7 +1206,7 @@ interface ILabelingPresenter {
                   </LeftItemContainer>
                   <LeftItemContainer onClick={checkIs3Dcube}>
                     <Icon
-                      src={is3DcubeOn ? icon3DcubeSelected : icon3Dcube}
+                      src={is3DcubeOn ? iconTool3DcubeSelected : iconTool3Dcube}
                     />
                     <LeftItemText>3D 큐브</LeftItemText>
                     <AlertModal
@@ -1090,13 +1223,13 @@ interface ILabelingPresenter {
                   </LeftItemContainer>
                   <LeftItemContainer onClick={checkIsSegment}>
                     <Icon
-                      src={isSegmentOn ? iconSegmentSelected : iconSegment}
+                      src={isSegmentOn ? iconToolSegmentSelected : iconToolSegment}
                     />
                     <LeftItemText>세그먼트</LeftItemText>
                   </LeftItemContainer>
                   <LeftItemContainer onClick={checkIsKeypoint}>
                     <Icon
-                      src={isKeypointOn ? iconKeypointSelected : iconKeypoint}
+                      src={isKeypointOn ? iconToolKeypointSelected : iconToolKeypoint}
                     />
                     <LeftItemText>키포인트</LeftItemText>
                     <AlertModal
@@ -1553,34 +1686,118 @@ interface ILabelingPresenter {
                       >
                         <DropBoxContentDescLeft>
                           <DropBoxBoldText style={{ marginBottom: 8 }}>
-                            해상도
+                            클래스
                           </DropBoxBoldText>
                           <DropBoxBoldText style={{ marginBottom: 8 }}>
-                            용량
-                          </DropBoxBoldText>
-                          <DropBoxBoldText style={{ marginBottom: 8 }}>
-                            파일크기
-                          </DropBoxBoldText>
+{/*                             {AttrList.attrName}
+ */}                          </DropBoxBoldText>
                         </DropBoxContentDescLeft>
                         <DropBoxContentDescRight>
                           <DropBoxNormalText style={{ marginBottom: 8 }}>
-                            720dpi
-                          </DropBoxNormalText>
+ {/*                            <Ball style={{ backgroundColor: classColor }} />
+                            {className}
+ */}                          </DropBoxNormalText>
                           <DropBoxNormalText style={{ marginBottom: 8 }}>
-                            123kb
-                          </DropBoxNormalText>
-                          <DropBoxNormalText style={{ marginBottom: 8 }}>
-                            {selectedTask &&
-                            selectedTask.imageWidth &&
-                            selectedTask.imageHeight
-                              ? `${selectedTask.imageWidth}px*${
-                                  selectedTask.imageHeight
-                                }px`
-                              : "900px*1600px"}
-                          </DropBoxNormalText>
+{/*                             {AttrList.attrValue}
+ */}                          </DropBoxNormalText>
                         </DropBoxContentDescRight>
                       </DropBoxContentDescWrapper>
                     )}
+                    {isInstanceOpen && (
+                      <DropBoxInstanceDescWrapper
+                        style={{
+                          borderBottom: 2,
+                          borderBottomColor: "#c0c3c7",
+                          borderBottomStyle: "solid",
+                        }}
+                      >
+                        <DropBoxInstanceDescRow>
+                          <DropBoxContentDescLeft>
+                            <DropBoxBoldText style={{ width: 50, marginBottom: 8 }}>
+                              높이
+                            </DropBoxBoldText>
+                          </DropBoxContentDescLeft>
+                          <DropBoxContentDescRight>
+                            <DropBoxNormalText style={{ marginBottom: 8 }}>
+                              {labelHeight}px<br></br>({labelPerHeight}%)
+                            </DropBoxNormalText>
+                          </DropBoxContentDescRight>
+                        </DropBoxInstanceDescRow>
+                        <DropBoxInstanceDescRow>
+                          <DropBoxContentDescLeft>
+                            <DropBoxBoldText style={{ width: 50, marginBottom: 8 }}>
+                              대각선
+                            </DropBoxBoldText>
+                          </DropBoxContentDescLeft>
+                          <DropBoxContentDescRight>
+                            <DropBoxNormalText style={{ marginBottom: 8 }}>
+                              {labelDiag}px<br></br>({labelPerDiag}%)
+                            </DropBoxNormalText>
+                          </DropBoxContentDescRight>
+                        </DropBoxInstanceDescRow>
+                        <DropBoxInstanceDescRow>
+                          <DropBoxContentDescLeft>
+                            <DropBoxBoldText style={{ width: 50, marginBottom: 8 }}>
+                              너비
+                            </DropBoxBoldText>
+                          </DropBoxContentDescLeft>
+                          <DropBoxContentDescRight>
+                            <DropBoxNormalText style={{ marginBottom: 8 }}>
+                              {labelWidth}px<br></br>({labelPerWidth}%)
+                            </DropBoxNormalText>
+                          </DropBoxContentDescRight>
+                        </DropBoxInstanceDescRow>
+                        <DropBoxInstanceDescRow>
+                          <DropBoxContentDescLeft>
+                            <DropBoxBoldText style={{ width: 50, marginBottom: 8 }}>
+                              위치
+                            </DropBoxBoldText>
+                          </DropBoxContentDescLeft>
+                          <DropBoxContentDescRight>
+                            <DropBoxNormalText style={{ marginBottom: 8 }}>
+                              x: {labelCoordX}px<br></br> y: {labelCoordY}px
+                            </DropBoxNormalText>
+                          </DropBoxContentDescRight>
+                        </DropBoxInstanceDescRow>
+                      </DropBoxInstanceDescWrapper>
+                    )}
+                    {isInstanceOpen && InstanceListItem.map((instance, index) => {
+                          return <DropBoxInstanceItem
+                        key={index}
+                        id={"instance"+index}
+                        //_hover={{ bgColor: "#CFD1D4" }}
+                        //_focusWithin={{ bgColor: "#CFD1D4" }}
+                        onClick={() => setIsClass(index)}
+                        style={{
+                          borderBottom: 2,
+                          borderBottomColor: "#c0c3c7",
+                          borderBottomStyle: "solid",
+                        }}
+                      >
+                        <Icon
+                          src={isInstanceOpen ? iconBoxingOn : iconBoxingOff}
+                          style={{ marginRight: 10 }}
+                        />
+                        <DropBoxNormalText>
+                          {instance.id + ": " + instance.className}
+                        </DropBoxNormalText>
+                        <Icon
+                          src={iconLock}
+                          style={{ marginRight: 10 }}
+                          //onClick={isLock(instance.id, index)}
+                        />
+                        <Icon
+                          src={iconVisible}
+                          style={{ marginRight: 10 }}
+                          //onClick={isVisible(instance.id, index)}
+                        />
+                        <Icon
+                          src={iconDelete}
+                          style={{ marginRight: 10 }}
+                          //onClick={isDelete(instance.id)}
+                        />
+                      </DropBoxInstanceItem>
+                    })}
                   </DropBoxContainer>
                   <DropBoxContainer style={{ padding: 0, borderBottom: 0 }}>
                     <DropBoxContentWrapper
