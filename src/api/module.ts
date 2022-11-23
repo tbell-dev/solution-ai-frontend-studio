@@ -23,8 +23,9 @@ const callApi = async (
   if (jwt) {
     headers.Authorization = `Bearer ${jwt}`;
   }
-  // const baseUrl = "https://sslo.ai/rest/api/1";
-  const baseUrl = "http://sslo.ai:8859/rest/api/1";
+  //const baseUrl = "https://sslo.ai/rest/api/1";
+  //const baseUrl = "http://sslo.ai:8859/rest/api/1";
+  const baseUrl = "http://sslo.ai:8829/rest/api/1";
   const requestUrl = `${baseUrl}${path}`;
 
   // ! method ===> GET | DELETE

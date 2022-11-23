@@ -20,7 +20,9 @@ import projectApi, {
   IGetProjectParam,
   IProjectInfo,
 } from "../../../api/projectApi";
+import labelingApi, { ILabeling, IAutoLabeling } from "../../../api/labelingApi";
 import { fabric } from "fabric";
+import { is } from "immer/dist/internal";
 
 //let fabric = require("fabric.js");
 
@@ -95,6 +97,88 @@ const LabelingContainer = () => {
   const [projectUser, setProjectUser] = useState<IUser[]>([]);
   // ! 프로젝트 정보
   const [projectInfo, setProjectInfo] = useState<IProjectInfo | null>();
+
+  let isDown = false, drawMode = false, isDragging = false, selection = false, isSelectObjectOn = false;
+  let objId = 0;
+  let startX = 0, startY = 0, endX = 0, endY = 0;
+  let pointArray: any[] = [];
+  let activeLine: any = null;
+  let activeShape: any = null;
+  let lineArray: any[] = [];
+
+  const [instanceWidth, setInstanceWidth] = useState(0);
+  const [instanceHeight, setInstanceHeight] = useState(0);
+  const [positionX, setPositionX] = useState(0);
+  const [positionY, setPositionY] = useState(0);
+  const [objectType, setObjectType] = useState("");
+  const [objectId, setObjectId] = useState(-1);
+
+  const [selectObject, setSelectObject] = useState<fabric.Object>();
+  const [labelWidth, setLabelWidth] = useState(0);
+  const [labelHeight, setLabelHeight] = useState(0);
+  const [labelCoordX, setLabelCoordX] = useState(0);
+  const [labelCoordY, setLabelCoordY] = useState(0);
+  const [labelDiag, setLabelDiag] = useState("");
+  const [labelPerWidth, setLabelPerWidth] = useState("");
+  const [labelPerHeight, setLabelPerHeight] = useState("");
+  const [labelPerDiag, setLabelPerDiag] = useState("");
+
+  const [imgRatio, setimgRatio] = useState(0);
+  const [imgWidth, setimgWidth] = useState(0);
+  const [imgHeight, setimgHeight] = useState(0);
+
+  const [ObjectListItem, setObjectListItem] = useState([]);
+  const [InstanceListItem, setInstanceListItem] = useState([]);
+  const [AnnotationListItem, setAnnotationListItem] = useState([]);
+  const [TagListItem, setTagListItem] = useState([]);
+  const [DeleteIDList, setDeleteIDList] = useState([]);
+  const [instanceClass, setInstanceClass] = useState("");
+  const [instanceGender, setInstanceGender] = useState("");
+  const [instanceAge, setInstanceAge] = useState("");
+
+  // Todo: 오토라벨링 Active 체크
+  const [isAutoLabelingOn, setAutoLabelingOn] = useState(false);
+
+  const [isDownloadOn, setIsDownloadOnOff] = useState<boolean>(false);
+  const [isDownload, setDownload] = useState("");
+  const [selectDownload, setSelectDownload] = useState("");
+
+  const [resizingVal, setResizingVal] = useState<string | null>(null);
+
+  const [isMoveOn, setIsMoveOnOff] = useState<boolean>(false);
+
+  const [isTagOn, setIsTagOnOff] = useState<boolean>(false);
+
+  const [isClassOn, setIsClassOnOff] = useState<boolean>(false);
+
+  const [isResetOn, setIsResetOnOff] = useState<boolean>(false);
+
+  const [isODOn, setIsODOnOff] = useState<boolean>(false);
+
+  const [isISOn, setIsISOnOff] = useState<boolean>(false);
+
+  const [isSESOn, setIsSESOnOff] = useState<boolean>(false);
+
+  const [isSmartpenOn, setIsSmartpenOnOff] = useState<boolean>(false);
+
+  let autoPointList = [];
+  const [isAutopointOn, setIsAutopointOnOff] = useState<boolean>(false);
+
+  const [isBoxingOn, setIsBoxingOnOff] = useState<boolean>(false);
+
+  const [isPolylineOn, setIsPolylineOnOff] = useState<boolean>(false);
+
+  const [isPointOn, setIsPointOnOff] = useState<boolean>(false);
+
+  const [isBrushOn, setIsBrushOnOff] = useState<boolean>(false);
+
+  const [is3DcubeOn, setIs3DcubeOnOff] = useState<boolean>(false);
+
+  const [isSegmentOn, setIsSegmentOnOff] = useState<boolean>(false);
+
+  const [isKeypointOn, setIsKeypointOnOff] = useState<boolean>(false);
+
+
   // ! MainCenterBottom의 isOpen state toggle method
   const toggleFileSelector = () => {
     setLoading(true);
@@ -215,14 +299,94 @@ const LabelingContainer = () => {
       // TODO: error handling
     }
   };
+  // ! call api OD Labeling
+  const getOD = async (param: any) => {
+    const res = await labelingApi.getOD(param);
+    if (res && res.status === 200) {
+      if (res.data.length > 0) {
+        for (let i = 0; i < res.data.length; i++) {
+          let item = res.data[i];
+          let color = item.annotation_category.annotation_category_color;
+          let coordinate = {
+            left: item.annotation_data[0],
+            top: item.annotation_data[1],
+            width: item.annotation_data[2] - item.annotation_data[0],
+            height: item.annotation_data[3] - item.annotation_data[1],
+          };
+          setPositionX(() => item.annotation_data[0]);
+          setPositionY(() => item.annotation_data[1]);
+          setInstanceWidth(() => item.annotation_data[2] - item.annotation_data[0]);
+          setInstanceHeight(() => item.annotation_data[3] - item.annotation_data[1]);
+          drawBoxing('OD', coordinate, color, null);
+        }
+      }
+    } else {
+      // TODO: error handling
+    }
+  };
+  const getIS = async (param: any) => {
+    const res = await labelingApi.getIS(param);
+    if (res && res.status === 200) {
+      if (res.data.length > 0) {
+        for (let i = 0; i < res.data.length; i++) {
+          let item = res.data[i];
+          //let color = item.annotation_category.annotation_category_color;
+          //let color = Math.floor(Math.random() * 16777215).toString(16);
+          //0xffffff = 16777215
+          let color = '#';
+          for (let c = 0; c < 6; c++) {
+            color += Math.round(Math.random() * 0xf).toString(16);
+          }
+          let items = item.annotation_data;
+          let coordinates = [];
+          for (let i = 0; i < items.length; i++) {
+            for (let j = 0; j < items[i].length; j = j + 2) {
+              coordinates.push(
+                new fabric.Point(items[i][j], items[i][j + 1]),
+              );
+            }
+          }
+          drawPolyItem('IS', coordinates, 'polygon', color, null, 0);
+        }
+      }
+    } else {
+      // TODO: error handling
+    }
+  };
+  const getSES = async (param: any) => {
+    const res = await labelingApi.getSES(param);
+    if (res && res.status === 200) {
+      if (res.data.length > 0) {
+        for (let i = 0; i < res.data.length; i++) {
+          let item = res.data[i];
+          let color = item.annotation_category.annotation_category_color;
+          let items = item.annotation_data;
+          let coordinates = [];
+          for (let i = 0; i < items.length; i++) {
+            for (let j = 0; j < items[i].length; j = j + 2) {
+              coordinates.push(
+                new fabric.Point(items[i][j], items[i][j + 1]),
+              );
+            }
+          }
+          //console.log(item.annotation_type.annotation_type_id);
+          drawPolyItem('SES', coordinates, 'segment', color, null, 0);
+        }
+      }
+    } else {
+      // TODO: error handling
+    }
+  };
   // ! 서버로부터 데이터를 받고 받은 데이터를 원하는 인터페이스에 맞게 정제한 후 state에 저장
   const cleanTasks = async (tasks: any[]) => {
     let cleanedTasks: ITask[] = [];
     let form: ITask;
+    let cnt = 0;
     for (let i = 0; i < tasks.length; i++) {
       const taskId = tasks[i].task_id;
       const imageName = tasks[i].task_detail.image_name;
       const imageThumbnail = tasks[i].task_detail.image_thumbnail;
+      const taskStep = tasks[i].task_status.task_status_step;
       const taskStatus = tasks[i].task_status.task_status_progress;
       const taskStatusName =
         taskStatus === 1
@@ -277,8 +441,14 @@ const LabelingContainer = () => {
         taskValidator,
       };
       cleanedTasks.push(form);
+      if(taskStep === 2 || taskStatus === 3) {
+        cnt++;
+      }
     }
     setTasks(cleanedTasks);
+    if(cnt > 5) {
+      setAutoLabelingOn(() => true);
+    }
   };
   // ! set selected task
   const _setSelectedTask = (task: ITask) => {
@@ -470,12 +640,41 @@ const LabelingContainer = () => {
     }
   }, [canvas]);
 
-  const [imgRatio, setimgRatio] = useState(0);
-  const [imgWidth, setimgWidth] = useState(0);
-  const [imgHeight, setimgHeight] = useState(0);
-  const setCanvasImage = () => {
+  const setCanvasImage = async () => {
     if (currentDataURL && canvas) {
       canvas.clear();
+      const res = await labelingApi.searchAnnotationByTask(
+        {
+          project_id: parseInt(pId),
+          task_id: selectedTask.taskId,
+          maxResults: 10000,
+        }
+      );
+      console.log(res.data);
+      for (let j = 0; j < res.data.datas.length; j++) {
+        let item = res.data.datas[j];
+        if (item.annotation_id) {
+          if (item.annotation_type.annotation_type_id === 1) {
+            let coord = {
+              left: item.annotation_data[0],
+              top: item.annotation_data[1],
+              width: item.annotation_data[2],
+              height: item.annotation_data[3],
+            };
+            drawBoxing('bbox', coord, '#00ffcc', item.annotation_id);
+          } else if (
+            item.annotation_type.annotation_type_id === 2 ||
+            item.annotation_type.annotation_type_id === 3
+          ) {
+            let items = item.annotation_data;
+            let coordinates = [];
+            for (let l = 0; l < items.length; l++) {
+              coordinates.push(new fabric.Point(items[l++], items[l]));
+            }
+            drawPolyItem(item.annotation_type.annotation_type_name, coordinates, item.annotation_type.annotation_type_name, '#00ffcc', item.annotation_id, item.annotation_type.annotation_type_id);
+          }
+        }
+      }
       //const url = baseUrl + "/task/data?project_id=" + pId + "&task_id=" + selectedTask.taskId;
       /*
       fabric.Image.fromURL(currentDataURL, (image) => {
@@ -515,29 +714,38 @@ const LabelingContainer = () => {
     }
   };
 
-  let isDown = false, drawMode = false, isDragging = false, selection = false, isSelectObjectOn = false;
-  let objId = 0;
-  let startX = 0, startY = 0, endX = 0, endY = 0;
-  let pointArray: any[] = [];
-  let activeLine: any = null;
-  let activeShape: any = null;
-  let lineArray: any[] = [];
-
-  const [instanceWidth, setInstanceWidth] = useState(0);
-  const [instanceHeight, setInstanceHeight] = useState(0);
-  const [positionX, setPositionX] = useState(0);
-  const [positionY, setPositionY] = useState(0);
+  /* useEffect(() => {
+    if(!canvas || !selectObject) return;
+    canvas.setActiveObject(selectObject);
+    canvas.renderAll();
+  }, [selectObject]); */
 
   const handleSelectObject = (options) => {
     if(!options.target) return;
     isSelectObjectOn = true;
     setSelectObject(() => options.target);
+    setObjectType(() => options.target.type);
+    setObjectId(() => options.target.id);
   }
 
   const handleDeSelectObject = (options) => {
     if(!options.target) return;
     isSelectObjectOn = false;
+    setSelectObject(() => null);
+    setObjectType(() => "");
+    setObjectId(() => -1);
   }
+
+  useEffect(() => {
+    document.onkeydown = function (e) {
+      let key = e.key || e.keyCode;
+      if (key === 46) {
+        // || 46 = Delete
+        key = 'Delete';
+      }
+      deleteItem(key);
+    };
+  }, [objectId]);
 
   const handleMoveObject = (options) => {
     if(!options.target) return;
@@ -569,6 +777,13 @@ const LabelingContainer = () => {
         }
       }
       //setDataImage(options.target);
+    } else if (options.target.tool === 'keypoint') {
+      let p = options.target;
+      p.line1 && p.line1.set({ x2: p.left, y2: p.top });
+      p.line2 && p.line2.set({ x1: p.left, y1: p.top });
+      p.line3 && p.line3.set({ x1: p.left, y1: p.top });
+      p.line4 && p.line4.set({ x1: p.left, y1: p.top });
+      p.line5 && p.line5.set({ x1: p.left, y1: p.top });
     }
   }
 
@@ -606,16 +821,6 @@ const LabelingContainer = () => {
     //setDataImage(coords);
     if(canvas) canvas.renderAll();
   }
-
-  const [selectObject, setSelectObject] = useState<fabric.Object>();
-  const [labelWidth, setLabelWidth] = useState(0);
-  const [labelHeight, setLabelHeight] = useState(0);
-  const [labelCoordX, setLabelCoordX] = useState(0);
-  const [labelCoordY, setLabelCoordY] = useState(0);
-  const [labelDiag, setLabelDiag] = useState("");
-  const [labelPerWidth, setLabelPerWidth] = useState("");
-  const [labelPerHeight, setLabelPerHeight] = useState("");
-  const [labelPerDiag, setLabelPerDiag] = useState("");
 
   useEffect(() => {
     console.log(selectObject);
@@ -731,22 +936,25 @@ const LabelingContainer = () => {
     }
   };
   // ! Save (Update)
-  const saveData = async () => {
+  const saveStatus = async (status: number) => {
     // TODO: 아래처럼 구현하면 업로드는 진행되는데 파일명이 blob.png로 떨어짐 이거는 추후 수정
     // ! 서버에 상태 및 라벨링 데이터 저장 기능
-    /*if (currentDataURL) {
-      const file = dataUrlToBlob(currentDataURL);
-      let formdata = new FormData();
-      formdata.append("image", file);
-
-      if (pId && selectedTask) {
-        const res = await taskApi.updateTaskData(
-          { project_id: parseInt(pId), task_id: selectedTask.taskId },
-          formdata
+    if (pId && selectedTask) {
+      const save = await saveData();
+      if(save) {
+        const res = await taskApi.updateTaskStatus(
+          { 
+            project_id: parseInt(pId), 
+            task_id: selectedTask.taskId 
+          },
+          {
+            task_status_progress: status,
+            comment_body: '',
+          }
         );
         if (res && res.status === 200) {
           toast({
-            title: "Task Image 업데이트 완료",
+            title: "작업 저장 완료",
             status: "success",
             position: "top",
             duration: 2000,
@@ -754,25 +962,170 @@ const LabelingContainer = () => {
           });
         }
       }
-    }*/
+    }
   };
+  const saveData = async () => {
+    if (pId && selectedTask) {
+      let resDelete = 0, resUpdate = 0, resCreate = 0;
+      for (let i = 0; i < DeleteIDList.length; i++) {
+        const res = await labelingApi.deleteAnnotation(
+          {
+            project_id: parseInt(pId), 
+            task_id: selectedTask.taskId,
+            annotation_id: DeleteIDList[i],
+          }
+        );
+        resDelete = res.status;
+      }
+      for (let i = 0; i < AnnotationListItem.length; i++) {
+        let data = AnnotationListItem[i].annotation;
+        if (data.annotation_id) {
+          const res = await labelingApi.updateAnnotation(
+            {
+              project_id: parseInt(pId), 
+              task_id: selectedTask.taskId,
+            }, 
+            data
+          );
+          resUpdate = res.status;
+        } else {
+          const res = await labelingApi.createAnnotation(
+            {
+              project_id: parseInt(pId), 
+              task_id: selectedTask.taskId,
+            },
+            data
+          );
+          resCreate = res.status;
+        }
+      }
+      return resDelete === 200 || resUpdate === 200 || resCreate === 200 ;
+    } else {
+      return false;
+    }
+  };
+
+
+  const isLock = (item: any, index: number) => {
+    for (let i = 0; i < ObjectListItem.length; i++) {
+      if (ObjectListItem[i].id === item) {
+        ObjectListItem[i].selectable =
+          !ObjectListItem[i].selectable;
+        /* if (!ObjectListItem[i].selectable) {
+          document.getElementById('lockBtn' + index).classList.add('active');
+        } else {
+          document
+            .getElementById('lockBtn' + index)
+            .classList.remove('active');
+        } */
+        canvas.discardActiveObject();
+        canvas.renderAll();
+      }
+    }
+  };
+  const isVisible = (item: any, index: number) => {
+    for (let i = 0; i < ObjectListItem.length; i++) {
+      if (ObjectListItem[i].id === item) {
+        ObjectListItem[i].visible = !ObjectListItem[i].visible;
+        TagListItem[i].visible = ObjectListItem[i].visible;
+        /* if (!ObjectListItem[i].visible) {
+          document
+            .getElementById('visibleBtn' + index)
+            .classList.add('active');
+        } else {
+          document
+            .getElementById('visibleBtn' + index)
+            .classList.remove('active');
+        } */
+        canvas.discardActiveObject();
+        canvas.renderAll();
+      }
+    }
+  };
+  const isDelete = (item: any) => {
+    deleteItem(item);
+    setIsODOnOff(() => false);
+    setIsISOnOff(() => false);
+    setIsSESOnOff(() => false);
+  };
+  const deleteItem = (key: any) => {
+    let check = /^[0-9]+$/;
+    if (key === 'Delete') {
+      for (let i = 0; i < TagListItem.length; i++) {
+        let tag = TagListItem[i];
+        if (tag.id === objectId) {
+          canvas.remove(tag);
+          TagListItem.splice(i, 1);
+        }
+      }
+      for (let i = 0; i < InstanceListItem.length; i++) {
+        if (InstanceListItem[i].id === objectId) {
+          InstanceListItem.splice(i, 1);
+        }
+      }
+      for (let i = 0; i < AnnotationListItem.length; i++) {
+        if (AnnotationListItem[i].id === objectId) {
+          if (AnnotationListItem[i].annotation.annotation_id) {
+            DeleteIDList.push(
+              AnnotationListItem[i].annotation.annotation_id,
+            );
+            console.log(AnnotationListItem[i].annotation.annotation_id);
+          } else {
+            console.log('no id');
+          }
+          AnnotationListItem.splice(i, 1);
+        }
+      }
+      for (let i = 0; i < ObjectListItem.length; i++) {
+        if (ObjectListItem[i].id === objectId) {
+          canvas.remove(selectObject);
+          ObjectListItem.splice(i, 1);
+        }
+      }
+      //isClassSettingOn = false;
+      setIsClassOnOff(() => false);
+    } else if (check.test(key)) {
+      for (let i = 0; i < TagListItem.length; i++) {
+        let tag = TagListItem[i];
+        if (tag.id === key) {
+          canvas.remove(tag);
+          TagListItem.splice(i, 1);
+        }
+      }
+      for (let i = 0; i < InstanceListItem.length; i++) {
+        if (InstanceListItem[i].id === key) {
+          InstanceListItem.splice(i, 1);
+        }
+      }
+      for (let i = 0; i < AnnotationListItem.length; i++) {
+        if (AnnotationListItem[i].id === key) {
+          if (AnnotationListItem[i].annotation.annotation_id) {
+            DeleteIDList.push(
+              AnnotationListItem[i].annotation.annotation_id,
+            );
+          }
+          AnnotationListItem.splice(i, 1);
+        }
+      }
+      for (let i = 0; i < ObjectListItem.length; i++) {
+        if (ObjectListItem[i].id === key) {
+          canvas.remove(ObjectListItem[i]);
+          ObjectListItem.splice(i, 1);
+        }
+      }
+      //_this.fCanvas.remove(_this.objSelected);
+      //isClassSettingOn = false;
+      setIsClassOnOff(() => false);
+    }
+    canvas.renderAll();
+  }
+
+
   const goBack = () => {
     navigate(-1);
   };
 
   //*************** Main function **********************/
-  const [ObjectListItem, setObjectListItem] = useState([]);
-  const [InstanceListItem, setInstanceListItem] = useState([]);
-  const [AnnotationListItem, setAnnotationListItem] = useState([]);
-  const [TagListItem, setTagListItem] = useState([]);
-  const [DeleteIDList, setDeleteIDList] = useState([]);
-  const [instanceClass, setInstanceClass] = useState("");
-  const [instanceGender, setInstanceGender] = useState("");
-  const [instanceAge, setInstanceAge] = useState("");
-
-  // Todo: 오토라벨링 Active 체크
-  const [isAutoLabelingOn, setAutoLabelingOn] = useState(false);
-
 
   const resetTools = () => {
     canvas.defaultCursor = "default";
@@ -847,9 +1200,6 @@ const LabelingContainer = () => {
   }
 
   //**! download */
-  const [isDownloadOn, setIsDownloadOnOff] = useState<boolean>(false);
-  const [isDownload, setDownload] = useState("");
-  const [selectDownload, setSelectDownload] = useState("");
   const checkIsDownload = () => {
     setIsDownloadOnOff((prev) => !prev);
   };
@@ -891,7 +1241,6 @@ const LabelingContainer = () => {
   };
 
   //**! resize  */
-  const [resizingVal, setResizingVal] = useState<string | null>(null);
   const handleResizing = (e: React.ChangeEvent<HTMLInputElement>) => {
     setResizingVal(e.target.value);
     zoomAdjustment(e.target.value);
@@ -918,7 +1267,6 @@ const LabelingContainer = () => {
   };*/
 
   //**! move */
-  const [isMoveOn, setIsMoveOnOff] = useState<boolean>(false);
   const checkIsMove = () => {
     setIsMoveOnOff((prev) => !prev);
   };
@@ -930,8 +1278,8 @@ const LabelingContainer = () => {
       canvas.hoverCursor = "move";
     }
   }, [isMoveOn]);
+
   //**! tag */
-  const [isTagOn, setIsTagOnOff] = useState<boolean>(false);
   const checkIsTag = () => {
     setIsTagOnOff((prev) => !prev);
   };
@@ -955,8 +1303,8 @@ const LabelingContainer = () => {
     if(canvas)
       canvas.renderAll();
   }, [isTagOn]);
+
   //**! class */
-  const [isClassOn, setIsClassOnOff] = useState<boolean>(false);
   const checkIsClass = () => {
     // 클래스 팝업
     setIsClassOnOff((prev) => !prev);
@@ -967,10 +1315,21 @@ const LabelingContainer = () => {
   const setIsClass = (index: number) => {
     // Todo: Instance 클래스 팝업
     console.log("instance class");
+    setIsClassOnOff((prev) => !prev);
+    let id = InstanceListItem[index].id;
+    let object = null;
+    for(let i = 0; i > ObjectListItem.length; i++){
+      if(ObjectListItem[i].id === id){
+        object = ObjectListItem[i];
+      }
+    }
+    if(object) {
+      setSelectObject(() => object);
+      setObjectId(() => object.id);
+    }
   };
 
   //**! reset */
-  const [isResetOn, setIsResetOnOff] = useState<boolean>(false);
   const checkIsReset = () => {
     setIsResetOnOff((prev) => !prev);
   };
@@ -985,26 +1344,88 @@ const LabelingContainer = () => {
     setCanvasImage();
     setIsResetOnOff(false);
   };
+
   //**! OD */
-  const [isODOn, setIsODOnOff] = useState<boolean>(false);
   const checkIsOD = () => {
-    resetTools();
-    setIsODOnOff((prev) => !prev);
+    if(isAutoLabelingOn) {
+      resetTools();
+      setIsODOnOff((prev) => !prev);
+    }
   };
-  const [isISOn, setIsISOnOff] = useState<boolean>(false);
+  useEffect(() => {
+    setLoading(true);
+    if (isODOn) {
+      clearAutoLabeling('OD');
+      clearAutoLabeling('IS');
+      clearAutoLabeling('SES');
+      getOD({
+        project_id: pId,
+        task_id: selectedTask.taskId,
+        labeling_type: 1,
+        //maxResults: 10000,
+      });
+    } else if (!isODOn) {
+      clearAutoLabeling('OD');
+      //isClassSettingOn = false;
+      setIsClassOnOff(() => false);
+    }
+    setLoading(false);
+  }, [isODOn]);
+
   //**! IS */
   const checkIsIS = () => {
-    resetTools();
-    setIsISOnOff((prev) => !prev);
+    if(isAutoLabelingOn) {
+      resetTools();
+      setIsISOnOff((prev) => !prev);
+    }
   };
+  useEffect(() => {
+    setLoading(true);
+    if (isISOn) {
+      clearAutoLabeling('OD');
+      clearAutoLabeling('IS');
+      clearAutoLabeling('SES');
+      console.log("IS");
+      getIS({
+        project_id: pId,
+        task_id: selectedTask.taskId,
+        labeling_type: 2,
+      });
+    } else {
+      clearAutoLabeling('IS');
+      //isClassSettingOn = false;
+      setIsClassOnOff(() => false);
+    }
+    setLoading(false);
+  }, [isISOn]);
+
   //**! SES */
-  const [isSESOn, setIsSESOnOff] = useState<boolean>(false);
   const checkIsSES = () => {
-    resetTools();
-    setIsSESOnOff((prev) => !prev);
+    if(isAutoLabelingOn) {
+      resetTools();
+      setIsSESOnOff((prev) => !prev);
+    }
   };
+  useEffect(() => {
+    setLoading(true);
+    if (isSESOn) {
+      clearAutoLabeling('OD');
+      clearAutoLabeling('IS');
+      clearAutoLabeling('SES');
+      getSES({
+        project_id: pId,
+        task_id: selectedTask.taskId,
+        labeling_type: 3,
+      });
+    } else {
+      clearAutoLabeling('IS');
+      //isClassSettingOn = false;
+      setIsClassOnOff(() => false);
+    }
+    setLoading(false);
+  }, [isSESOn]);
+
   //**! smartpen */
-  const [isSmartpenOn, setIsSmartpenOnOff] = useState<boolean>(false);
   const checkIsSmartpen = () => {
     resetTools();
     setIsSmartpenOnOff(!isSmartpenOn);
@@ -1012,9 +1433,8 @@ const LabelingContainer = () => {
   const onCancelSmartpen = () => {
     setIsSmartpenOnOff(false);
   };
+
   //**! autopoint */
-  let autoPointList = [];
-  const [isAutopointOn, setIsAutopointOnOff] = useState<boolean>(false);
   const checkIsAutopoint = () => {
     resetTools();
     setIsAutopointOnOff((prev) => !prev);
@@ -1042,23 +1462,26 @@ const LabelingContainer = () => {
     endY = pointer.y;
     drawPoints(pointer, "autopoint");
   };
+
   //**! boxing */
-  const [isBoxingOn, setIsBoxingOnOff] = useState<boolean>(false);
   const checkIsBoxing = () => {
     resetTools();
     setIsBoxingOnOff((prev) => !prev);
   };
   useEffect(() => {
     if(isBoxingOn && canvas) {
+      console.log("boxSet");
       canvas.defaultCursor = "crosshair";
       canvas.hoverCursor = "crosshair";
       canvas.on("mouse:down", handleBoxingDown);
       canvas.on("mouse:move", handleBoxingMove);
       canvas.on("mouse:up", handleBoxingUp);
+      console.log(canvas);
     } else if(!isBoxingOn && canvas) {
-      canvas.off("mouse:down");
+      canvas.off("mouse:down", handleBoxingDown);
       canvas.off("mouse:move");
       canvas.off("mouse:up");
+      console.log(canvas);
     }
   }, [isBoxingOn]);
   let tempRect: fabric.Rect = null;
@@ -1191,6 +1614,7 @@ const LabelingContainer = () => {
       //textBackgroundColor: 'grey',
       fontFamily: 'Comic Sans',
       fontSize: 10 * (1 / imgRatio),
+      selectable: false,
       visible: isTagOn,
     };
     console.log(isTagOn);
@@ -1230,8 +1654,8 @@ const LabelingContainer = () => {
     //this.setDataImage();
     objId++;
   }
+
   //**! polyline */
-  const [isPolylineOn, setIsPolylineOnOff] = useState<boolean>(false);
   const checkIsPolyline = () => {
     resetTools();
     setIsPolylineOnOff((prev) => !prev);
@@ -1299,8 +1723,8 @@ const LabelingContainer = () => {
     isDragging = false;
     selection = true;
   };
+
   //**! point */
-  const [isPointOn, setIsPointOnOff] = useState<boolean>(false);
   const checkIsPoint = () => {
     resetTools();
     setIsPointOnOff((prev) => !prev);
@@ -1425,8 +1849,8 @@ const LabelingContainer = () => {
       }
     }
   }
+
   //**! brush */
-  const [isBrushOn, setIsBrushOnOff] = useState<boolean>(false);
   const checkIsBrush = () => {
     resetTools();
     setIsBrushOnOff((prev) => !prev);
@@ -1434,8 +1858,8 @@ const LabelingContainer = () => {
   const onCancelBrush = () => {
     setIsBrushOnOff(false);
   };
+
   //**! 3Dcube */
-  const [is3DcubeOn, setIs3DcubeOnOff] = useState<boolean>(false);
   const checkIs3Dcube = () => {
     resetTools();
     setIs3DcubeOnOff((prev) => !prev);
@@ -1443,8 +1867,8 @@ const LabelingContainer = () => {
   const onCancel3Dcube = () => {
     setIs3DcubeOnOff(false);
   };
+
   //**! segment */
-  const [isSegmentOn, setIsSegmentOnOff] = useState<boolean>(false);
   const checkIsSegment = () => {
     resetTools();
     setIsSegmentOnOff((prev) => !prev);
@@ -1475,8 +1899,8 @@ const LabelingContainer = () => {
       toggleDrawPolygon(options);
     }
   };
+
   //**! keypoint */
-  const [isKeypointOn, setIsKeypointOnOff] = useState<boolean>(false);
   const checkIsKeypoint = () => {
     resetTools();
     setIsKeypointOnOff((prev) => !prev);
@@ -1484,7 +1908,433 @@ const LabelingContainer = () => {
   const onCancelKeypoint = () => {
     setIsKeypointOnOff(false);
   };
+  useEffect(() => {
+    if(isKeypointOn && canvas) {
+      canvas.defaultCursor = "crosshair";
+      canvas.hoverCursor = "crosshair";
+      canvas.on("mouse:down", handleKeypointDown);
+      canvas.on("mouse:move", handleKeypointMove);
+      canvas.on("mouse:up", handleKeypointUp);
+    } else if(!isKeypointOn && canvas) {
+      canvas.off("mouse:down");
+      canvas.off("mouse:move");
+      canvas.off("mouse:up");
+    }
+  }, [isKeypointOn]);
 
+  const handleKeypointDown = (options: any) => {
+    if(!canvas || isSelectObjectOn) return;
+    let pointer = canvas.getPointer(options);
+    startX = pointer.x;
+    startY = pointer.y;
+    tempRect = new fabric.Rect({
+      left: pointer.x,
+      top: pointer.y,
+      width: 0,
+      height: 0,
+      strokeWidth: 2 * (1 / imgRatio),
+      stroke: 'rgba(0,0,0,0.3)',
+      strokeDashArray: [5 * (1 / imgRatio), 5 * (1 / imgRatio)],
+      fill: 'transparent',
+    });
+    canvas.add(tempRect);
+    isDown = true;
+  };
+  const handleKeypointMove = (options: any) => {
+    if(!canvas || !isDown || isSelectObjectOn) return;
+    let pointer = canvas.getPointer(options);
+    setDragBox(pointer.x, pointer.y);
+  };
+  const handleKeypointUp = (options: any) => {
+    if(!canvas || isSelectObjectOn) return;
+    let pointer = canvas.getPointer(options);
+    endX = pointer.x;
+    endY = pointer.y;
+    if (
+      Math.abs(endX - startX) > 1 &&
+      Math.abs(endY - startY) > 1
+    ) {
+      drawKeypoint(null);
+    }
+    isDown = false;
+  };
+
+  const drawKeypoint = (aId: number) => {
+    canvas.remove(tempRect);
+    if (isKeypointOn) {
+      let left = startX,
+        top = startY,
+        right = endX,
+        bottom = endY,
+        width = endX - startX,
+        height = endY - startY,
+        centerX = startX + width / 2,
+        centerY = startY + height / 2;
+      if (endX < startX) {
+        left = endX;
+        right = startX;
+        width = startX - endX;
+        centerX = endX + width / 2;
+      }
+      if (endY < startY) {
+        top = endY;
+        bottom = startY;
+        height = startY - endY;
+        centerY = + height / 2;
+      }
+      console.log(left + ', ' + right + ', ' + centerX);
+      console.log(top + ', ' + bottom + ', ' + centerY);
+      let headPoint = makeCircle(imgRatio, centerX, top),
+        neckPoint = makeCircle(
+          imgRatio,
+          centerX,
+          top + (centerY - top) * 0.3,
+        ),
+        chestPoint = makeCircle(
+          imgRatio,
+          centerX,
+          top + (centerY - top) * 0.5,
+        ),
+        lshoulderPoint = makeCircle(
+          imgRatio,
+          centerX - (centerX - left) * 0.5,
+          top + (centerY - top) * 0.3,
+        ),
+        rshoulderPoint = makeCircle(
+          imgRatio,
+          centerX + (right - centerX) * 0.5,
+          top + (centerY - top) * 0.3,
+        ),
+        lelbowPoint = makeCircle(
+          imgRatio,
+          centerX - (centerX - left) * 0.7,
+          top + (centerY - top) * 0.7,
+        ),
+        relbowPoint = makeCircle(
+          imgRatio,
+          centerX + (right - centerX) * 0.7,
+          top + (centerY - top) * 0.7,
+        ),
+        lwrinklePoint = makeCircle(
+          imgRatio,
+          centerX - (centerX - left) * 0.5,
+          centerY,
+        ),
+        rwrinklePoint = makeCircle(
+          imgRatio,
+          centerX + (right - centerX) * 0.5,
+          centerY,
+        ),
+        lhipPoint = makeCircle(
+          imgRatio,
+          centerX - (centerX - left) * 0.2,
+          centerY,
+        ),
+        rhipPoint = makeCircle(
+          imgRatio,
+          centerX + (right - centerX) * 0.2,
+          centerY,
+        ),
+        lkneePoint = makeCircle(
+          imgRatio,
+          centerX - (centerX - left) * 0.3,
+          centerY + (bottom - centerY) * 0.5,
+        ),
+        rkneePoint = makeCircle(
+          imgRatio,
+          centerX + (right - centerX) * 0.3,
+          centerY + (bottom - centerY) * 0.5,
+        ),
+        lanklePoint = makeCircle(
+          imgRatio,
+          centerX - (centerX - left) * 0.3,
+          bottom,
+        ),
+        ranklePoint = makeCircle(
+          imgRatio,
+          centerX + (right - centerX) * 0.3,
+          bottom,
+        ),
+        ltoePoint = makeCircle(
+          imgRatio,
+          centerX - (centerX - left) * 0.5,
+          bottom,
+        ),
+        rtoePoint = makeCircle(
+          imgRatio,
+          centerX + (right - centerX) * 0.5,
+          bottom,
+        );
+
+      let hnLine = makeLine([
+          headPoint.left,
+          headPoint.top,
+          neckPoint.left,
+          neckPoint.top,
+        ]),
+        ncLine = makeLine([
+          neckPoint.left,
+          neckPoint.top,
+          chestPoint.left,
+          chestPoint.top,
+        ]),
+        clsLine = makeLine([
+          chestPoint.left,
+          chestPoint.top,
+          lshoulderPoint.left,
+          lshoulderPoint.top,
+        ]),
+        crsLine = makeLine([
+          chestPoint.left,
+          chestPoint.top,
+          rshoulderPoint.left,
+          rshoulderPoint.top,
+        ]),
+        sleLine = makeLine([
+          lshoulderPoint.left,
+          lshoulderPoint.top,
+          lelbowPoint.left,
+          lelbowPoint.top,
+        ]),
+        sreLine = makeLine([
+          rshoulderPoint.left,
+          rshoulderPoint.top,
+          relbowPoint.left,
+          relbowPoint.top,
+        ]),
+        elwLine = makeLine([
+          lelbowPoint.left,
+          lelbowPoint.top,
+          lwrinklePoint.left,
+          lwrinklePoint.top,
+        ]),
+        erwLine = makeLine([
+          relbowPoint.left,
+          relbowPoint.top,
+          rwrinklePoint.left,
+          rwrinklePoint.top,
+        ]),
+        clhLine = makeLine([
+          chestPoint.left,
+          chestPoint.top,
+          lhipPoint.left,
+          lhipPoint.top,
+        ]),
+        crhLine = makeLine([
+          chestPoint.left,
+          chestPoint.top,
+          rhipPoint.left,
+          rhipPoint.top,
+        ]),
+        hlkLine = makeLine([
+          lhipPoint.left,
+          lhipPoint.top,
+          lkneePoint.left,
+          lkneePoint.top,
+        ]),
+        hrkLine = makeLine([
+          rhipPoint.left,
+          rhipPoint.top,
+          rkneePoint.left,
+          rkneePoint.top,
+        ]),
+        klaLine = makeLine([
+          lkneePoint.left,
+          lkneePoint.top,
+          lanklePoint.left,
+          lanklePoint.top,
+        ]),
+        kraLine = makeLine([
+          rkneePoint.left,
+          rkneePoint.top,
+          ranklePoint.left,
+          ranklePoint.top,
+        ]),
+        altLine = makeLine([
+          lanklePoint.left,
+          lanklePoint.top,
+          ltoePoint.left,
+          ltoePoint.top,
+        ]),
+        artLine = makeLine([
+          ranklePoint.left,
+          ranklePoint.top,
+          rtoePoint.left,
+          rtoePoint.top,
+        ]);
+      /* headPoint.line2 = hnLine;
+      neckPoint.line1 = hnLine;
+      neckPoint.line2 = ncLine;
+      chestPoint.line1 = ncLine;
+      chestPoint.line2 = clsLine;
+      chestPoint.line3 = crsLine;
+      chestPoint.line4 = clhLine;
+      chestPoint.line5 = crhLine;
+      lshoulderPoint.line1 = clsLine;
+      lshoulderPoint.line2 = sleLine;
+      rshoulderPoint.line1 = crsLine;
+      rshoulderPoint.line2 = sreLine;
+      lelbowPoint.line1 = sleLine;
+      lelbowPoint.line2 = elwLine;
+      relbowPoint.line1 = sreLine;
+      relbowPoint.line2 = erwLine;
+      lwrinklePoint.line1 = elwLine;
+      rwrinklePoint.line1 = erwLine;
+      lhipPoint.line1 = clhLine;
+      lhipPoint.line2 = hlkLine;
+      rhipPoint.line1 = crhLine;
+      rhipPoint.line2 = hrkLine;
+      lkneePoint.line1 = hlkLine;
+      lkneePoint.line2 = klaLine;
+      rkneePoint.line1 = hrkLine;
+      rkneePoint.line2 = kraLine;
+      lanklePoint.line1 = klaLine;
+      lanklePoint.line2 = altLine;
+      ranklePoint.line1 = kraLine;
+      ranklePoint.line2 = artLine;
+      ltoePoint.line1 = altLine;
+      rtoePoint.line1 = artLine; */
+      setLine(headPoint, null, hnLine);
+      setLine(neckPoint, hnLine, ncLine);
+      setLine(chestPoint, ncLine, clsLine, crsLine, clhLine, crhLine);
+      setLine(lshoulderPoint, clsLine, sleLine);
+      setLine(rshoulderPoint, crsLine, sreLine);
+      setLine(lelbowPoint, sleLine, elwLine);
+      setLine(relbowPoint, sreLine, erwLine);
+      setLine(lwrinklePoint, elwLine, null);
+      setLine(rwrinklePoint, erwLine, null);
+      setLine(lhipPoint, clhLine, hlkLine);
+      setLine(rhipPoint, crhLine, hrkLine);
+      setLine(lkneePoint, hlkLine, klaLine);
+      setLine(rkneePoint, hrkLine, kraLine);
+      setLine(lanklePoint, klaLine, altLine);
+      setLine(ranklePoint, kraLine, artLine);
+      setLine(ltoePoint, altLine, null);
+      setLine(rtoePoint, artLine, null);
+
+      canvas.add(
+        hnLine,
+        ncLine,
+        clsLine,
+        crsLine,
+        sleLine,
+        sreLine,
+        elwLine,
+        erwLine,
+        clhLine,
+        crhLine,
+        hlkLine,
+        hrkLine,
+        klaLine,
+        kraLine,
+        altLine,
+        artLine,
+      );
+
+      canvas.add(
+        headPoint,
+        neckPoint,
+        chestPoint,
+        lshoulderPoint,
+        rshoulderPoint,
+        lelbowPoint,
+        relbowPoint,
+        lwrinklePoint,
+        rwrinklePoint,
+        lhipPoint,
+        rhipPoint,
+        lkneePoint,
+        rkneePoint,
+        lanklePoint,
+        ranklePoint,
+        ltoePoint,
+        rtoePoint,
+      );
+
+      InstanceListItem.push({
+        id: objId, //category id
+        tool: 'keypoint',
+        cId: 0, //AnnotationListItem id
+        className: 'human',
+        gender: '',
+        age: '',
+        attrs: [],
+      });
+
+      let cData = [
+        headPoint.left,
+        headPoint.top,
+        2,
+        neckPoint.left,
+        neckPoint.top,
+        2,
+        chestPoint.left,
+        chestPoint.top,
+        2,
+        lshoulderPoint.left,
+        lshoulderPoint.top,
+        2,
+        rshoulderPoint.left,
+        rshoulderPoint.top,
+        2,
+        lelbowPoint.left,
+        lelbowPoint.top,
+        2,
+        relbowPoint.left,
+        relbowPoint.top,
+        2,
+        lwrinklePoint.left,
+        lwrinklePoint.top,
+        2,
+        rwrinklePoint.left,
+        rwrinklePoint.top,
+        2,
+        lhipPoint.left,
+        lhipPoint.top,
+        2,
+        rhipPoint.left,
+        rhipPoint.top,
+        2,
+        lkneePoint.left,
+        lkneePoint.top,
+        2,
+        rkneePoint.left,
+        rkneePoint.top,
+        2,
+        lanklePoint.left,
+        lanklePoint.top,
+        2,
+        ranklePoint.left,
+        ranklePoint.top,
+        2,
+        ltoePoint.left,
+        ltoePoint.top,
+        2,
+        rtoePoint.left,
+        rtoePoint.top,
+        2,
+      ];
+      console.log(cData);
+      AnnotationListItem.push({
+        id: objId,
+        annotation: {
+          annotation_id: aId,
+          annotation_type: {
+            annotation_type_id: 10,
+            annotation_type_name: 'keypoint',
+          },
+          annotation_category: {
+            annotation_category_id: 0,
+            annotation_category_attributes: [],
+          },
+          annotation_data: cData,
+        },
+      });
+      objId++;
+    }
+  };
+
+  //**! polygon module */
   const toggleDrawPolygon = (options) => {
     if(!canvas) return;
     if (drawMode) {
@@ -1527,7 +2377,7 @@ const LabelingContainer = () => {
     /*if (isPolylineOn) {
       polyItem = new fabric.Polyline(coordinate, option);
     }*/
-    let optionPolyItem = {
+    let optionTag = {
       id: objId,
       fill: '#ffffff',
       //textBackgroundColor: 'grey',
@@ -1536,7 +2386,7 @@ const LabelingContainer = () => {
       visible: isTagOn,
       selectable: false,
     };
-    let tag = new fabric.Text('human ' + objId, optionPolyItem);
+    let tag = new fabric.Text('human ' + objId, optionTag);
     tag.set('top', polyItem.top + polyItem.height / 2 - tag.height / 2);
     tag.set('left', polyItem.left + polyItem.width / 2 - tag.width / 2);
     canvas.add(polyItem);
@@ -1917,36 +2767,52 @@ const LabelingContainer = () => {
   };
   
   // ! MainCenterBottom의 file select state
-  /*const makeCircle = (left: number, top: number, line1: fabric.Line, line2: fabric.Line, line3: fabric.Line, line4: fabric.Line) => {
-      let c = new fabric.Circle({
-          id: 0,
-          tool: 'keypoint',
-          left: left,
-          top: top,
-          strokeWidth: 2,
-          radius: 4,
-          fill: '#fff',
-          stroke: '#666',
-          originX: 'center',
-          originY: 'center',
-      });
-      c.hasControls = c.hasBorders = false;
-      c.line1 = line1;
-      c.line2 = line2;
-      c.line3 = line3;
-      c.line4 = line4;
-      return c;
+  const makeCircle = (ratio: number, left: number, top: number) => {
+    let optionCircle = {
+      id: 0,
+      tool: 'keypoint',
+      left: left,
+      top: top,
+      strokeWidth: 2 / ratio,
+      radius: 4 / ratio,
+      fill: '#fff',
+      stroke: '#666',
+      originX: 'center',
+      originY: 'center',
+      hoverCursor: 'pointer',
+      line1: '',
+      line2: '',
+      line3: '',
+      line4: '',
+      line5: '',
+    };
+    let c = new fabric.Circle(optionCircle);
+    c.hasControls = c.hasBorders = false;
+    c.on('selected', handleSelectObject);
+    c.on('deselected', handleDeSelectObject);
+    return c;
+  };
+  const setLine = (c: any, line1: any, line2: any, line3?: any, line4?: any, line5?: any) => {
+    let optionCircle = {
+      line1: line1,
+      line2: line2,
+      line3: line3,
+      line4: line4,
+      line5: line5,
+    };
+    c.set(optionCircle);
   };
   const makeLine = (coords: Array<number>) => {
-      return new fabric.Line(coords, {
-        tool: 'keypoint',
-        fill: 'red',
-        stroke: 'red',
-        strokeWidth: 2,
-        selectable: false,
-        evented: false,
-      });
-  };*/
+    let optionLine = {
+      tool: 'keypoint',
+      fill: 'red',
+      stroke: 'red',
+      strokeWidth: 2,
+      selectable: false,
+      evented: false,
+    };
+    return new fabric.Line(coords, optionLine);
+  };
 
   if (pId) {
     return (
@@ -1989,7 +2855,7 @@ const LabelingContainer = () => {
         handleToggleFullScreen={handleToggleFullScreen}
         handleUnDo={handleUnDo}
         handleRedo={handleRedo}
-        saveData={saveData}
+        saveStatus={saveStatus}
         goBack={goBack}
         isMoveOn={isMoveOn}
         isTagOn={isTagOn}
@@ -2035,6 +2901,9 @@ const LabelingContainer = () => {
         onSubmitDownload={onSubmitDownload}
         checkIsDownload={checkIsDownload}
         setIsClass={setIsClass}
+        isLock={isLock}
+        isVisible={isVisible}
+        isDelete={isDelete}
         isDownloadOn={isDownloadOn}
         isDownload={isDownload}
         selectDownload={selectDownload} 
@@ -2048,6 +2917,7 @@ const LabelingContainer = () => {
         labelPerDiag={labelPerDiag}      
         InstanceListItem={InstanceListItem}
         isAutoLabelingOn={isAutoLabelingOn}
+        objectType={objectType}
       />
     );
   }

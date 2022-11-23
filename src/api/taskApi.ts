@@ -40,6 +40,8 @@ export default {
     callApi("get", "/task/data", null, undefined, param, responseType),
   updateTaskData: (param: IUpdateTaskParams, payload: FormData) =>
     callApi("post", "/task/data/update", payload, undefined, param, undefined),
+  updateTaskStatus: (param: any, payload: any) =>
+    callApi("post", "/task/status/update", payload, undefined, param, undefined),
   updateTask: (param: IUpdateTaskParams, payload: any) =>
     callApi("post", "/task/update", payload, undefined, param, undefined),
   createTask: (param: any, payload: FormData) =>

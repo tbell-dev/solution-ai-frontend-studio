@@ -138,7 +138,7 @@ interface ILabelingPresenter {
     handleToggleFullScreen: () => void;
     handleUnDo: () => void;
     handleRedo: () => void;
-    saveData: () => Promise<void>;
+    saveStatus: (status: number) => Promise<void>;
     goBack: () => void;
     checkIsDownload: () => void;
     checkIsMove: () => void;
@@ -159,6 +159,9 @@ interface ILabelingPresenter {
     checkIsSegment: () => void;
     checkIsKeypoint: () => void;
     setIsClass: (index: number) => void;
+    isLock: (id: number, index: number) => void;
+    isVisible: (id: number, index: number) => void;
+    isDelete: (id: number) => void;
     isDownload: string;
     selectDownload: string;
     isDownloadOn: boolean;
@@ -190,6 +193,7 @@ interface ILabelingPresenter {
     labelPerDiag: string;
     InstanceListItem: any[];
     isAutoLabelingOn: boolean;
+    objectType: string;
   }
   
   const StudioWrapper = styled.div`
@@ -541,10 +545,12 @@ interface ILabelingPresenter {
     font-size: 14px;
     font-weight: 600;
     line-height: 16px;
+    align-items: center;
     overflow-x: hidden;
   `;
   const DropBoxContentWrapper = styled.div`
     width: 100%;
+    border-top: 1px solid #c0c3c7;
     border-bottom: 1px solid #c0c3c7;
   `;
   const DropBoxContentTitle = styled.div`
@@ -574,9 +580,27 @@ interface ILabelingPresenter {
     display: flex;
     flex-direction: column;
   `;
-  const DropBoxInstanceItem = styled.div`
-    padding: 20px;
+  const DropBoxInstanceWrapper = styled.div`
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #A4A8AD;
+    border-radius: 2px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #e2e4e7;
+    width: 10px;
+  }
     display: flex;
+    flex-direction: column;
+    height: 200px;
+    overflow-y: auto;
+  `;
+  const DropBoxInstanceItem = styled.div`
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
   `;
   const MainRightBottom = styled.div`
     display: flex;
@@ -706,6 +730,10 @@ interface ILabelingPresenter {
     labelPerDiag,
     InstanceListItem,
     isAutoLabelingOn,
+    objectType,
+    isLock,
+    isVisible,
+    isDelete,
     _setLabelingAssignee,
     _setExaminee,
     toggleFileInfoOpen,
@@ -733,7 +761,7 @@ interface ILabelingPresenter {
     handleToggleFullScreen,
     handleUnDo,
     handleRedo,
-    saveData,
+    saveStatus,
     goBack,
     checkIsDownload,
     checkIsMove,
@@ -861,7 +889,7 @@ interface ILabelingPresenter {
                 </NavButton>
                 <NavButton 
                   style={{ cursor: "pointer" }} 
-                  onClick={saveData}
+                  onClick={() => saveStatus(2)}
                 >
                   <Icon
                     src={iconSave}
@@ -1232,7 +1260,7 @@ interface ILabelingPresenter {
                       src={isKeypointOn ? iconToolKeypointSelected : iconToolKeypoint}
                     />
                     <LeftItemText>키포인트</LeftItemText>
-                    <AlertModal
+                    {/* <AlertModal
                       isOpen={isKeypointOn}
                       onClose={onCancelKeypoint}
                       title={"키포인트"}
@@ -1242,7 +1270,7 @@ interface ILabelingPresenter {
                           {"준비중입니다."}
                         </p>
                       </>
-                    </AlertModal>
+                    </AlertModal> */}
                   </LeftItemContainer>
                 </MainLeft>
                 <LeftListArrow>
@@ -1703,7 +1731,7 @@ interface ILabelingPresenter {
                         </DropBoxContentDescRight>
                       </DropBoxContentDescWrapper>
                     )}
-                    {isInstanceOpen && (
+                    {isInstanceOpen && objectType === "rect" && (
                       <DropBoxInstanceDescWrapper
                         style={{
                           borderBottom: 2,
@@ -1761,43 +1789,50 @@ interface ILabelingPresenter {
                         </DropBoxInstanceDescRow>
                       </DropBoxInstanceDescWrapper>
                     )}
-                    {isInstanceOpen && InstanceListItem.map((instance, index) => {
-                          return <DropBoxInstanceItem
-                        key={index}
-                        id={"instance"+index}
-                        //_hover={{ bgColor: "#CFD1D4" }}
-                        //_focusWithin={{ bgColor: "#CFD1D4" }}
-                        onClick={() => setIsClass(index)}
-                        style={{
-                          borderBottom: 2,
-                          borderBottomColor: "#c0c3c7",
-                          borderBottomStyle: "solid",
-                        }}
-                      >
-                        <Icon
-                          src={isInstanceOpen ? iconBoxingOn : iconBoxingOff}
-                          style={{ marginRight: 10 }}
-                        />
-                        <DropBoxNormalText>
-                          {instance.id + ": " + instance.className}
-                        </DropBoxNormalText>
-                        <Icon
-                          src={iconLock}
-                          style={{ marginRight: 10 }}
-                          //onClick={isLock(instance.id, index)}
-                        />
-                        <Icon
-                          src={iconVisible}
-                          style={{ marginRight: 10 }}
-                          //onClick={isVisible(instance.id, index)}
-                        />
-                        <Icon
-                          src={iconDelete}
-                          style={{ marginRight: 10 }}
-                          //onClick={isDelete(instance.id)}
-                        />
-                      </DropBoxInstanceItem>
-                    })}
+                    {isInstanceOpen && InstanceListItem.length > 0 && (
+                      <DropBoxInstanceWrapper>
+                        {InstanceListItem.map((instance, index) => {
+                              return <DropBoxInstanceItem
+                            key={index}
+                            id={"instance"+index}
+                            //_hover={{ bgColor: "#CFD1D4" }}
+                            //_focusWithin={{ bgColor: "#CFD1D4" }}
+                            onClick={() => setIsClass(index)}
+                            style={{
+                              borderBottom: 2,
+                              borderBottomColor: "#c0c3c7",
+                              borderBottomStyle: "solid",
+                            }}
+                          >
+                            <Icon
+                              // Todo: 아이콘 조건 툴 종류
+                              src={isInstanceOpen ? iconBoxingOn : iconBoxingOff}
+                              style={{ marginLeft: 10, marginRight: 10 }}
+                            />
+                            <DropBoxTextWrapper>
+                              <DropBoxNormalText>
+                                {instance.id + ": " + instance.className}
+                              </DropBoxNormalText>
+                            </DropBoxTextWrapper>
+                            <Icon
+                              src={iconLock}
+                              style={{ marginLeft: 10, marginRight: 5 }}
+                              onClick={() => isLock(instance.id, index)}
+                            />
+                            <Icon
+                              src={iconVisible}
+                              style={{ marginLeft: 5, marginRight: 5 }}
+                              onClick={() => isVisible(instance.id, index)}
+                            />
+                            <Icon
+                              src={iconDelete}
+                              style={{ marginLeft: 5, marginRight: 5 }}
+                              onClick={() => isDelete(instance.id)}
+                            />
+                          </DropBoxInstanceItem>
+                        })}
+                      </DropBoxInstanceWrapper>
+                    )}
                   </DropBoxContainer>
                   <DropBoxContainer style={{ padding: 0, borderBottom: 0 }}>
                     <DropBoxContentWrapper
@@ -1816,44 +1851,35 @@ interface ILabelingPresenter {
                         <ArrowDropDownText>History</ArrowDropDownText>
                       </DropBoxContentTitle>
                     </DropBoxContentWrapper>
-                    {isHistoryOpen && (
-                      <DropBoxContentDescWrapper
-                        style={{
-                          borderBottom: 2,
-                          borderBottomColor: "#c0c3c7",
-                          borderBottomStyle: "solid",
-                        }}
-                      >
-                        <DropBoxContentDescLeft>
-                          <DropBoxBoldText style={{ marginBottom: 8 }}>
-                            해상도
-                          </DropBoxBoldText>
-                          <DropBoxBoldText style={{ marginBottom: 8 }}>
-                            용량
-                          </DropBoxBoldText>
-                          <DropBoxBoldText style={{ marginBottom: 8 }}>
-                            파일크기
-                          </DropBoxBoldText>
-                        </DropBoxContentDescLeft>
-                        <DropBoxContentDescRight>
-                          <DropBoxNormalText style={{ marginBottom: 8 }}>
-                            720dpi
-                          </DropBoxNormalText>
-                          <DropBoxNormalText style={{ marginBottom: 8 }}>
-                            123kb
-                          </DropBoxNormalText>
-                          <DropBoxNormalText style={{ marginBottom: 8 }}>
-                            {selectedTask &&
-                            selectedTask.imageWidth &&
-                            selectedTask.imageHeight
-                              ? `${selectedTask.imageWidth}px*${
-                                  selectedTask.imageHeight
-                                }px`
-                              : "900px*1600px"}
-                          </DropBoxNormalText>
-                        </DropBoxContentDescRight>
-                      </DropBoxContentDescWrapper>
-                    )}
+                    {/* {isHistoryOpen && HistoryListItem.length > 0 && (
+                      <DropBoxInstanceWrapper>
+                        {HistoryListItem.map((history, index) => {
+                              return <DropBoxInstanceItem
+                            key={index}
+                            id={"instance"+index}
+                            //_hover={{ bgColor: "#CFD1D4" }}
+                            //_focusWithin={{ bgColor: "#CFD1D4" }}
+                            onClick={() => setIsClass(index)}
+                            style={{
+                              borderBottom: 2,
+                              borderBottomColor: "#c0c3c7",
+                              borderBottomStyle: "solid",
+                            }}
+                          >
+                            <Icon
+                              // Todo: 아이콘 조건 히스토리 종류
+                              src={isHistoryOpen ? iconBoxingOn : iconBoxingOff}
+                              style={{ marginLeft: 10, marginRight: 10 }}
+                            />
+                            <DropBoxTextWrapper>
+                              <DropBoxNormalText>
+                                {history.id + ": " + history.name}
+                              </DropBoxNormalText>
+                            </DropBoxTextWrapper>
+                          </DropBoxInstanceItem>
+                        })}
+                      </DropBoxInstanceWrapper>
+                    )} */}
                   </DropBoxContainer>
                 </MainRightUpper>
                 <MainRightBottom>
