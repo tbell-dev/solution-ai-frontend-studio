@@ -6,6 +6,18 @@ export interface ISmallTaskProps {
   isSelected: boolean;
 }
 
+const ImageWrapper = styled.div<{ isSelected: boolean }>`
+  height: 100%;
+  width: 180px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 20px;
+  padding-left: 20px;
+  margin-right: 7px;
+  background: ${(props) => (props.isSelected ? '#c0c3c7' : null)};
+`;
+
 const Image = styled.img<{ isSelected: boolean; taskStatus: number }>`
   width: 130px;
   height: 80px;
@@ -53,6 +65,7 @@ const SmallTask: React.FC<ISmallTaskProps> = ({ task, isSelected }) => {
 
   return (
     <>
+      <ImageWrapper isSelected={isSelected}>
       <Image
         src={`data:image/png;base64,${task.imageThumbnail}`}
         isSelected={isSelected}
@@ -74,6 +87,7 @@ const SmallTask: React.FC<ISmallTaskProps> = ({ task, isSelected }) => {
           <ImageStatus style={{ color: '#FF4343' }}>반려</ImageStatus>
         )}
       </ImageDescWrapper>
+      </ImageWrapper>
     </>
   );
 };

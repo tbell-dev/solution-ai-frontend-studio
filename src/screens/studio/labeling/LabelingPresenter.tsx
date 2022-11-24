@@ -507,6 +507,8 @@ interface ILabelingPresenter {
     padding-top: 25px;
     margin-right: 7px;
   `;
+  const ImageWrapper = styled.div`
+  `;
   const ImagePickerListContainer = styled.div`
     display: flex;
     align-items: center;
@@ -1098,7 +1100,7 @@ interface ILabelingPresenter {
                             //justifyContent={"center"}
                             flexDirection={"column"}
                           >
-                            <Button 
+                            {/* <Button 
                               margin={"0 10px 8px 0"}
                               height={"26px"}
                               background={"#414244"}
@@ -1109,10 +1111,8 @@ interface ILabelingPresenter {
                             >
                               인간
                             </Button>
-                            {"성별"}
-                            <Button>여자</Button>
-                            <Button>남자</Button>
-                            <Button>알 수 없음</Button>
+                            {"속성"}
+                            <Button>속성1</Button> */}
                           </ModalBody>
                         </ModalContent>
                       </Popup>
@@ -1388,7 +1388,7 @@ interface ILabelingPresenter {
                       </SpinnerWrapper>
                     ) : (
                       <>
-                        <PickedImageContainer>
+                        {/* <PickedImageContainer>
                           {selectedTask && workStatutes === "전체" ? (
                             <SmallTask task={selectedTask} isSelected={true} />
                           ) : (
@@ -1397,7 +1397,7 @@ interface ILabelingPresenter {
                               <SmallTask task={selectedTask} isSelected={true} />
                             )
                           )}
-                        </PickedImageContainer>
+                        </PickedImageContainer> */}
                         <ImagePickerListContainer>
                           {workStatutes === "전체" &&
                             tasks.map((task, index) => {
@@ -1405,15 +1405,23 @@ interface ILabelingPresenter {
                                 selectedTask &&
                                 task.taskId === selectedTask.taskId
                               )
-                                return null;
+                                return (
+                                  <ImageWrapper
+                                    //onClick={() => _setSelectedTask(task)}
+                                    key={index}
+                                    style={{ cursor: "pointer" }}
+                                  >
+                                    <SmallTask task={selectedTask} isSelected={true} />
+                                  </ImageWrapper>
+                                );
                               return (
-                                <NonPickedImageWrapper
+                                <ImageWrapper
                                   onClick={() => _setSelectedTask(task)}
                                   key={index}
                                   style={{ cursor: "pointer" }}
                                 >
                                   <SmallTask task={task} isSelected={false} />
-                                </NonPickedImageWrapper>
+                                </ImageWrapper>
                               );
                             })}
                           {workStatutes === "미작업" &&
@@ -1424,15 +1432,23 @@ interface ILabelingPresenter {
                                   selectedTask &&
                                   task.taskId === selectedTask.taskId
                                 )
-                                  return null;
+                                  return (
+                                    <ImageWrapper
+                                      //onClick={() => _setSelectedTask(task)}
+                                      key={index}
+                                      style={{ cursor: "pointer" }}
+                                    >
+                                      <SmallTask task={selectedTask} isSelected={true} />
+                                    </ImageWrapper>
+                                  );
                                 return (
-                                  <NonPickedImageWrapper
+                                  <ImageWrapper
                                     onClick={() => _setSelectedTask(task)}
                                     key={index}
                                     style={{ cursor: "pointer" }}
                                   >
                                     <SmallTask task={task} isSelected={false} />
-                                  </NonPickedImageWrapper>
+                                  </ImageWrapper>
                                 );
                               })}
                           {workStatutes === "진행중" &&
@@ -1443,15 +1459,23 @@ interface ILabelingPresenter {
                                   selectedTask &&
                                   task.taskId === selectedTask.taskId
                                 )
-                                  return null;
+                                  return (
+                                    <ImageWrapper
+                                      //onClick={() => _setSelectedTask(task)}
+                                      key={index}
+                                      style={{ cursor: "pointer" }}
+                                    >
+                                      <SmallTask task={selectedTask} isSelected={true} />
+                                    </ImageWrapper>
+                                  );
                                 return (
-                                  <NonPickedImageWrapper
+                                  <ImageWrapper
                                     onClick={() => _setSelectedTask(task)}
                                     key={index}
                                     style={{ cursor: "pointer" }}
                                   >
                                     <SmallTask task={task} isSelected={false} />
-                                  </NonPickedImageWrapper>
+                                  </ImageWrapper>
                                 );
                               })}
                           {workStatutes === "완료" &&
@@ -1462,15 +1486,23 @@ interface ILabelingPresenter {
                                   selectedTask &&
                                   task.taskId === selectedTask.taskId
                                 )
-                                  return null;
+                                  return (
+                                    <ImageWrapper
+                                      //onClick={() => _setSelectedTask(task)}
+                                      key={index}
+                                      style={{ cursor: "pointer" }}
+                                    >
+                                      <SmallTask task={selectedTask} isSelected={true} />
+                                    </ImageWrapper>
+                                  );
                                 return (
-                                  <NonPickedImageWrapper
+                                  <ImageWrapper
                                     onClick={() => _setSelectedTask(task)}
                                     key={index}
                                     style={{ cursor: "pointer" }}
                                   >
                                     <SmallTask task={task} isSelected={false} />
-                                  </NonPickedImageWrapper>
+                                  </ImageWrapper>
                                 );
                               })}
                           {workStatutes === "반려" &&
@@ -1481,15 +1513,23 @@ interface ILabelingPresenter {
                                   selectedTask &&
                                   task.taskId === selectedTask.taskId
                                 )
-                                  return null;
+                                  return (
+                                    <ImageWrapper
+                                      //onClick={() => _setSelectedTask(task)}
+                                      key={index}
+                                      style={{ cursor: "pointer" }}
+                                    >
+                                      <SmallTask task={selectedTask} isSelected={true} />
+                                    </ImageWrapper>
+                                  );
                                 return (
-                                  <NonPickedImageWrapper
+                                  <ImageWrapper
                                     onClick={() => _setSelectedTask(task)}
                                     key={index}
                                     style={{ cursor: "pointer" }}
                                   >
                                     <SmallTask task={task} isSelected={false} />
-                                  </NonPickedImageWrapper>
+                                  </ImageWrapper>
                                 );
                               })}
                         </ImagePickerListContainer>

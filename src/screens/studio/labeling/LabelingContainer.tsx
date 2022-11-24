@@ -23,6 +23,7 @@ import projectApi, {
 import labelingApi, { ILabeling, IAutoLabeling } from "../../../api/labelingApi";
 import { fabric } from "fabric";
 import { is } from "immer/dist/internal";
+import { AnyAaaaRecord } from "dns";
 
 //let fabric = require("fabric.js");
 
@@ -446,7 +447,7 @@ const LabelingContainer = () => {
       }
     }
     setTasks(cleanedTasks);
-    if(cnt > 5) {
+    if(cnt > 3) {
       setAutoLabelingOn(() => true);
     }
   };
@@ -535,6 +536,8 @@ const LabelingContainer = () => {
       };
       setDataURLHistory([...dataURLHistory, history]);
     }
+    resetTools();
+    clearDatas();
     // eslint-disable-next-line
   }, [selectedTask]);
 
@@ -622,7 +625,7 @@ const LabelingContainer = () => {
       //canvas.on('selection:updated', handleSelectionUpdated);
       //canvas.on('before:selection:cleared', beforeClearSelection);
       //canvas.on('selection:cleared', handleSelectionCleared);
-      //canvas.on('mouse:wheel', handleMouseWheel);
+      canvas.on('mouse:wheel', handleMouseWheel);
       //canvas.on('path:created', createPath);
       //ctx = canvas.getContext();
       fabric.Object.prototype.setControlsVisibility({
@@ -1120,6 +1123,41 @@ const LabelingContainer = () => {
     canvas.renderAll();
   }
 
+  const handleMouseWheel = (options: any) => {
+    if(canvas) {
+      //console.log('wheel');
+      let delta = options.e.deltaY;
+      //let pointer = this.fCanvas.getPointer(options.e);
+      let zoom = canvas.getZoom();
+      console.log(zoom + ", " + delta);
+      zoom *= 0.999 ** delta;
+      //zoom *= this.imgRatio;
+      if (delta < 0) {
+        zoom += 0.1;
+      } else {
+        zoom -= 0.1;
+      }
+      /* if (zoom > 2 * imgRatio) zoom = 2 * imgRatio;
+      if (zoom < 0.1 * imgRatio) zoom = 0.1 * imgRatio; */
+      if (zoom > 2) zoom = 2;
+      if (zoom < 0.1) zoom = 0.1;
+      //zoom *= this.imgRatio;
+      let width = imgWidth * zoom;
+      let height = imgHeight * zoom;
+      console.log(zoom);
+      //canvas.setWidth(width);
+      //canvas.setHeight(height);
+      /*this.fCanvas.zoomToPoint(
+        { x: options.e.offsetX, y: options.e.offsetY },
+        zoom,
+      );*/
+      canvas.setZoom(zoom);
+      /*let range = document.getElementById('zoom-range');
+      range.value = (zoom * 100) / imgRatio;*/
+      /*options.e.preventDefault();
+      options.e.stopPropagation();*/
+    }
+  };
 
   const goBack = () => {
     navigate(-1);
@@ -1128,8 +1166,10 @@ const LabelingContainer = () => {
   //*************** Main function **********************/
 
   const resetTools = () => {
-    canvas.defaultCursor = "default";
-    canvas.hoverCursor = "crosshair";
+    if(canvas) {
+      canvas.defaultCursor = "default";
+      canvas.hoverCursor = "crosshair";
+    }
     setIsODOnOff(() => false);
     setIsISOnOff(() => false);
     setIsSESOnOff(() => false);
@@ -1773,7 +1813,7 @@ const LabelingContainer = () => {
         left: point.x,
         top: point.y,
         hasBorders: false,
-        //hasControls: false,
+        hasControls: false,
         cornerSize: 5 / imgRatio,
         originX: 'center',
         originY: 'center',
