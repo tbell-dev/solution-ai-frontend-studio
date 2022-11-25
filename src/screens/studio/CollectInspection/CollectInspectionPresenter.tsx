@@ -328,6 +328,8 @@ interface ICollectInspectionPresenter {
     padding-top: 25px;
     margin-right: 7px;
   `;
+  const ImageWrapper = styled.div`
+  `;
   const ImagePickerListContainer = styled.div`
     display: flex;
     align-items: center;
@@ -736,16 +738,6 @@ interface ICollectInspectionPresenter {
                       </SpinnerWrapper>
                     ) : (
                       <>
-                        <PickedImageContainer>
-                          {selectedTask && workStatutes === "전체" ? (
-                            <SmallTask task={selectedTask} isSelected={true} />
-                          ) : (
-                            selectedTask &&
-                            selectedTask.taskStatusName === workStatutes && (
-                              <SmallTask task={selectedTask} isSelected={true} />
-                            )
-                          )}
-                        </PickedImageContainer>
                         <ImagePickerListContainer>
                           {workStatutes === "전체" &&
                             tasks.map((task, index) => {
@@ -753,15 +745,22 @@ interface ICollectInspectionPresenter {
                                 selectedTask &&
                                 task.taskId === selectedTask.taskId
                               )
-                                return null;
+                                return (
+                                  <ImageWrapper
+                                    key={index}
+                                    style={{ cursor: "pointer" }}
+                                  >
+                                    <SmallTask task={selectedTask} isSelected={true} />
+                                  </ImageWrapper>
+                                );
                               return (
-                                <NonPickedImageWrapper
+                                <ImageWrapper
                                   onClick={() => _setSelectedTask(task)}
                                   key={index}
                                   style={{ cursor: "pointer" }}
                                 >
                                   <SmallTask task={task} isSelected={false} />
-                                </NonPickedImageWrapper>
+                                </ImageWrapper>
                               );
                             })}
                           {workStatutes === "미작업" &&
@@ -772,15 +771,22 @@ interface ICollectInspectionPresenter {
                                   selectedTask &&
                                   task.taskId === selectedTask.taskId
                                 )
-                                  return null;
+                                  return (
+                                    <ImageWrapper
+                                      key={index}
+                                      style={{ cursor: "pointer" }}
+                                    >
+                                      <SmallTask task={selectedTask} isSelected={true} />
+                                    </ImageWrapper>
+                                  );
                                 return (
-                                  <NonPickedImageWrapper
+                                  <ImageWrapper
                                     onClick={() => _setSelectedTask(task)}
                                     key={index}
                                     style={{ cursor: "pointer" }}
                                   >
                                     <SmallTask task={task} isSelected={false} />
-                                  </NonPickedImageWrapper>
+                                  </ImageWrapper>
                                 );
                               })}
                           {workStatutes === "진행중" &&
@@ -791,15 +797,22 @@ interface ICollectInspectionPresenter {
                                   selectedTask &&
                                   task.taskId === selectedTask.taskId
                                 )
-                                  return null;
+                                  return (
+                                    <ImageWrapper
+                                      key={index}
+                                      style={{ cursor: "pointer" }}
+                                    >
+                                      <SmallTask task={selectedTask} isSelected={true} />
+                                    </ImageWrapper>
+                                  );
                                 return (
-                                  <NonPickedImageWrapper
+                                  <ImageWrapper
                                     onClick={() => _setSelectedTask(task)}
                                     key={index}
                                     style={{ cursor: "pointer" }}
                                   >
                                     <SmallTask task={task} isSelected={false} />
-                                  </NonPickedImageWrapper>
+                                  </ImageWrapper>
                                 );
                               })}
                           {workStatutes === "완료" &&
@@ -810,15 +823,22 @@ interface ICollectInspectionPresenter {
                                   selectedTask &&
                                   task.taskId === selectedTask.taskId
                                 )
-                                  return null;
+                                  return (
+                                    <ImageWrapper
+                                      key={index}
+                                      style={{ cursor: "pointer" }}
+                                    >
+                                      <SmallTask task={selectedTask} isSelected={true} />
+                                    </ImageWrapper>
+                                  );
                                 return (
-                                  <NonPickedImageWrapper
+                                  <ImageWrapper
                                     onClick={() => _setSelectedTask(task)}
                                     key={index}
                                     style={{ cursor: "pointer" }}
                                   >
                                     <SmallTask task={task} isSelected={false} />
-                                  </NonPickedImageWrapper>
+                                  </ImageWrapper>
                                 );
                               })}
                           {workStatutes === "반려" &&
@@ -829,15 +849,22 @@ interface ICollectInspectionPresenter {
                                   selectedTask &&
                                   task.taskId === selectedTask.taskId
                                 )
-                                  return null;
+                                  return (
+                                    <ImageWrapper
+                                      key={index}
+                                      style={{ cursor: "pointer" }}
+                                    >
+                                      <SmallTask task={selectedTask} isSelected={true} />
+                                    </ImageWrapper>
+                                  );
                                 return (
-                                  <NonPickedImageWrapper
+                                  <ImageWrapper
                                     onClick={() => _setSelectedTask(task)}
                                     key={index}
                                     style={{ cursor: "pointer" }}
                                   >
                                     <SmallTask task={task} isSelected={false} />
-                                  </NonPickedImageWrapper>
+                                  </ImageWrapper>
                                 );
                               })}
                         </ImagePickerListContainer>

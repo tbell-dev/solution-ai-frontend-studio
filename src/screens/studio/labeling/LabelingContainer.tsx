@@ -2,6 +2,7 @@ import React, {
   ChangeEvent,
   MouseEventHandler,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { useToast } from "@chakra-ui/react";
@@ -24,6 +25,20 @@ import labelingApi, { ILabeling, IAutoLabeling } from "../../../api/labelingApi"
 import { fabric } from "fabric";
 import { is } from "immer/dist/internal";
 import { AnyAaaaRecord } from "dns";
+import iconDefault from "../../../assets/images/studio/icon/instanceTools/icon-instance-default.svg";
+import iconSmartpen from "../../../assets/images/studio/icon/instanceTools/icon-instance-smartpen.svg";
+import iconAutopoint from "../../../assets/images/studio/icon/instanceTools/icon-instance-autopoint.svg";
+import iconBoxing from "../../../assets/images/studio/icon/instanceTools/icon-instance-boxing.svg";
+import iconPolyline from "../../../assets/images/studio/icon/instanceTools/icon-instance-polyline.svg";
+import iconPolygon from "../../../assets/images/studio/icon/instanceTools/icon-instance-polygon.svg";
+import iconPoint from "../../../assets/images/studio/icon/instanceTools/icon-instance-point.svg";
+import iconBrush from "../../../assets/images/studio/icon/instanceTools/icon-instance-brush.svg";
+import icon3Dcube from "../../../assets/images/studio/icon/instanceTools/icon-instance-3Dcube.svg";
+import iconSegment from "../../../assets/images/studio/icon/instanceTools/icon-instance-segment.svg";
+import iconKeypoint from "../../../assets/images/studio/icon/instanceTools/icon-instance-keypoint.svg";
+import iconOD from "../../../assets/images/studio/icon/instanceTools/icon-instance-OD.svg";
+import iconIS from "../../../assets/images/studio/icon/instanceTools/icon-instance-IS.svg";
+import iconSES from "../../../assets/images/studio/icon/instanceTools/icon-instance-SES.svg";
 
 //let fabric = require("fabric.js");
 
@@ -1142,16 +1157,21 @@ const LabelingContainer = () => {
       if (zoom > 2) zoom = 2;
       if (zoom < 0.1) zoom = 0.1;
       //zoom *= this.imgRatio;
-      let width = imgWidth * zoom;
-      let height = imgHeight * zoom;
-      console.log(zoom);
-      //canvas.setWidth(width);
-      //canvas.setHeight(height);
+      /* let width = selectedTask.imageWidth * zoom;
+      let height = selectedTask.imageHeight * zoom; */
+      let img = canvas.backgroundImage as fabric.Image;
+      console.log(img);
+      let width = img.width * zoom;
+      let height = img.height * zoom;
+      //console.log(width + ", " + height);
+      canvas.setWidth(width);
+      canvas.setHeight(height);
       /*this.fCanvas.zoomToPoint(
         { x: options.e.offsetX, y: options.e.offsetY },
         zoom,
       );*/
       canvas.setZoom(zoom);
+      setResizingVal((zoom * 100).toString());
       /*let range = document.getElementById('zoom-range');
       range.value = (zoom * 100) / imgRatio;*/
       /*options.e.preventDefault();
@@ -1651,7 +1671,7 @@ const LabelingContainer = () => {
     let optionTag = {
       id: objId,
       fill: '#ffffff',
-      //textBackgroundColor: 'grey',
+      textBackgroundColor: color,
       fontFamily: 'Comic Sans',
       fontSize: 10 * (1 / imgRatio),
       selectable: false,
@@ -2854,6 +2874,85 @@ const LabelingContainer = () => {
     return new fabric.Line(coords, optionLine);
   };
 
+  const refTools = useRef<any>(null);
+  const refTop = useRef<any>(null);
+  const refBottom = useRef<any>(null);
+  const onMoveToToolsTop = () => {
+    refTop.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    console.log(refTop.current);
+  };
+  const onMoveToToolsEnd = () => {
+    refBottom.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  };
+  let imgIndexLeft = 0, imgIndexRight = 5;
+  const onMoveToToolsLeft = () => {
+    if(imgIndexLeft < 5){
+      imgIndexLeft = 0; 
+      imgIndexRight = 5;
+    } else {
+      imgIndexLeft -= 5;
+      imgIndexRight -= 5; 
+    }
+    let left = document.getElementById("img"+imgIndexLeft);
+    left.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  const onMoveToToolsRight = () => {
+    if(imgIndexRight > tasks.length - 5){
+      imgIndexLeft = tasks.length - 6; 
+      imgIndexRight = tasks.length - 1;
+    } else {
+      imgIndexLeft += 5;
+      imgIndexRight += 5; 
+    }
+    let right = document.getElementById("img"+imgIndexRight);
+    right.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  };
+  const setInstanceIcon = (tool: string) => {
+    let icon = iconDefault;
+    switch(tool) {
+      case "OD":
+        icon = iconOD;
+        break;
+      case "IS":
+        icon = iconIS;
+        break;
+      case "SES":
+        icon = iconSES;
+        break;
+      case "autopoint":
+        icon = iconAutopoint;
+        break;
+      case "smartpen":
+        icon = iconSmartpen;
+        break;
+      case "bbox":
+        icon = iconBoxing;
+        break;
+      case "polyline":
+        icon = iconPolyline;
+        break;
+      case "polygon":
+        icon = iconPolygon;
+        break;
+      case "point":
+        icon = iconPoint;
+        break;
+      case "brush":
+        icon = iconBrush;
+        break;
+      case "3Dcube":
+        icon = icon3Dcube;
+        break;
+      case "segment":
+        icon = iconSegment;
+        break;
+      case "keypoint":
+        icon = iconKeypoint;
+        break;
+    }
+    return icon;
+  };
+
   if (pId) {
     return (
       <LabelingPresenter
@@ -2958,6 +3057,14 @@ const LabelingContainer = () => {
         InstanceListItem={InstanceListItem}
         isAutoLabelingOn={isAutoLabelingOn}
         objectType={objectType}
+        refTools={refTools}
+        refTop={refTop}
+        refBottom={refBottom}
+        onMoveToToolsTop={onMoveToToolsTop}
+        onMoveToToolsEnd={onMoveToToolsEnd}
+        onMoveToToolsLeft={onMoveToToolsLeft}
+        onMoveToToolsRight={onMoveToToolsRight}
+        setInstanceIcon={setInstanceIcon}
       />
     );
   }

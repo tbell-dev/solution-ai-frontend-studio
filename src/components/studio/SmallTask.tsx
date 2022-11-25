@@ -12,8 +12,9 @@ const ImageWrapper = styled.div<{ isSelected: boolean }>`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding-top: 20px;
-  padding-left: 20px;
+  padding-top: 15px;
+  padding-left: 25px;
+  padding-bottom: 10px;
   margin-right: 7px;
   background: ${(props) => (props.isSelected ? '#c0c3c7' : null)};
 `;
