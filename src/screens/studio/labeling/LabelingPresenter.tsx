@@ -54,9 +54,11 @@ import iconArrowTop from "../../../assets/images/studio/icon/icon-scroll-up-dark
 import iconArrowBottom from "../../../assets/images/studio/icon/icon-scroll-down-dark.svg";
 import iconArrowLeft from "../../../assets/images/studio/icon/icon-scroll-left-dark.svg";
 import iconArrowRight from "../../../assets/images/studio/icon/icon-scroll-right-dark.svg";
-import iconLock from "../../../assets/images/studio/icon/icon-lock01.svg";
-import iconVisible from "../../../assets/images/studio/icon/icon-visibility01.svg";
-import iconDelete from "../../../assets/images/studio/icon/icon-delete01.svg";
+import iconLock from "../../../assets/images/studio/icon/instanceTools/icon-lock-active.svg";
+import iconUnLock from "../../../assets/images/studio/icon/instanceTools/icon-unlock-dark.svg";
+import iconVisible from "../../../assets/images/studio/icon/instanceTools/icon-visible-dark.svg";
+import iconInvisible from "../../../assets/images/studio/icon/instanceTools/icon-invisible-active.svg";
+import iconDelete from "../../../assets/images/studio/icon/instanceTools/icon-delete-dark.svg";
 import iconBoxingOn from "../../../assets/images/studio/icon/icon-boxing02.svg";
 import iconBoxingOff from "../../../assets/images/studio/icon/icon-boxing03.svg";
 import arrowUp from "../../../assets/images/studio/icon/icon-up.svg";
@@ -584,6 +586,7 @@ interface ILabelingPresenter {
     line-height: 16px;
     align-items: center;
     overflow-x: hidden;
+    text-overflow: ellipsis;
   `;
   const DropBoxContentWrapper = styled.div`
     width: 100%;
@@ -1060,7 +1063,8 @@ interface ILabelingPresenter {
                     type={"range"}
                     min={0}
                     max={200}
-                    defaultValue={resizingVal === null ? "100" : resizingVal}
+                    //defaultValue={"100"}
+                    value={resizingVal === null ? "100" : resizingVal}
                     onChange={handleResizing}
                   />
                   <Icon src={iconZoomInc} />
@@ -1744,9 +1748,9 @@ interface ILabelingPresenter {
                         }}
                       >
                         <DropBoxContentDescLeft>
-                          <DropBoxBoldText style={{ marginBottom: 8 }}>
+                          {/* <DropBoxBoldText style={{ marginBottom: 8 }}>
                             파일명
-                          </DropBoxBoldText>
+                          </DropBoxBoldText> */}
                           <DropBoxBoldText style={{ marginBottom: 8 }}>
                             파일크기
                           </DropBoxBoldText>
@@ -1755,12 +1759,12 @@ interface ILabelingPresenter {
                           </DropBoxBoldText>
                         </DropBoxContentDescLeft>
                         <DropBoxContentDescRight>
-                          <DropBoxNormalText style={{ marginBottom: 8 }}>
+                          {/* <DropBoxNormalText style={{ marginBottom: 8 }}>
                             {selectedTask &&
                             selectedTask.imageName
                               ? `${selectedTask.imageName}`
                               : "file.png"}
-                          </DropBoxNormalText>
+                          </DropBoxNormalText> */}
                           <DropBoxNormalText style={{ marginBottom: 8 }}>
                             {selectedTask &&
                             selectedTask.imageWidth &&
@@ -1887,37 +1891,39 @@ interface ILabelingPresenter {
                         {InstanceListItem.map((instance, index) => {
                               return <DropBoxInstanceItem
                             key={index}
-                            id={"instance"+index}
+                            id={"instance" + index}
                             //_hover={{ bgColor: "#CFD1D4" }}
                             //_focusWithin={{ bgColor: "#CFD1D4" }}
-                            onClick={() => setIsClass(index)}
+                            //onClick={() => setIsClass(index)}
                             style={{
                               borderBottom: 2,
                               borderBottomColor: "#c0c3c7",
                               borderBottomStyle: "solid",
                             }}
                           >
-                            <Icon
-                              // Todo: 아이콘 조건 툴 종류
-                              src={setInstanceIcon(instance.tool)}
-                              style={{ marginLeft: 10, marginRight: 10 }}
-                            />
-                            <DropBoxTextWrapper>
+                            <DropBoxTextWrapper onClick={() => setIsClass(index)}>
+                              <Icon
+                                src={setInstanceIcon(instance.tool)}
+                                style={{ marginLeft: 10, marginRight: 10 }}
+                              />
                               <DropBoxNormalText>
                                 {instance.id + ": " + instance.className}
                               </DropBoxNormalText>
                             </DropBoxTextWrapper>
                             <Icon
-                              src={iconLock}
+                              id={"lockBtn" + index}
+                              src={instance.selectable ? iconUnLock : iconLock}
                               style={{ marginLeft: 10, marginRight: 5 }}
                               onClick={() => isLock(instance.id, index)}
                             />
                             <Icon
-                              src={iconVisible}
+                              id={"visibleBtn" + index}
+                              src={instance.visible ? iconVisible : iconInvisible}
                               style={{ marginLeft: 5, marginRight: 5 }}
                               onClick={() => isVisible(instance.id, index)}
                             />
                             <Icon
+                              id={"deleteBtn" + index}
                               src={iconDelete}
                               style={{ marginLeft: 5, marginRight: 5 }}
                               onClick={() => isDelete(instance.id)}

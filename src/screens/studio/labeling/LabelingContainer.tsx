@@ -636,6 +636,7 @@ const LabelingContainer = () => {
       //canvas.on('mouse:out', outCanvas);
       canvas.on('object:moving', handleMoveObject);
       canvas.on('object:scaling', handleScaleObject);
+      canvas.on('object:modified', handleModifiedObject);
       //canvas.on('selection:created', handleSelectionCreated);
       //canvas.on('selection:updated', handleSelectionUpdated);
       //canvas.on('before:selection:cleared', beforeClearSelection);
@@ -668,7 +669,6 @@ const LabelingContainer = () => {
           maxResults: 10000,
         }
       );
-      console.log(res.data);
       for (let j = 0; j < res.data.datas.length; j++) {
         let item = res.data.datas[j];
         if (item.annotation_id) {
@@ -740,7 +740,9 @@ const LabelingContainer = () => {
 
   const handleSelectObject = (options) => {
     if(!options.target) return;
+    console.log("selcet");
     isSelectObjectOn = true;
+    //console.log(options.target.type);
     setSelectObject(() => options.target);
     setObjectType(() => options.target.type);
     setObjectId(() => options.target.id);
@@ -748,6 +750,7 @@ const LabelingContainer = () => {
 
   const handleDeSelectObject = (options) => {
     if(!options.target) return;
+    console.log("deselcet");
     isSelectObjectOn = false;
     setSelectObject(() => null);
     setObjectType(() => "");
@@ -767,6 +770,7 @@ const LabelingContainer = () => {
 
   const handleMoveObject = (options) => {
     if(!options.target) return;
+    console.log(options.target);
     if(options.target.type === "rect") {
       setInstanceWidth(() => options.target.width * options.target.scaleX);
       setInstanceHeight(() => options.target.height * options.target.scaleY);
@@ -784,6 +788,7 @@ const LabelingContainer = () => {
             options.target.top + options.target.height / 2 - tag.height / 2;
         }
       }
+      console.log(AnnotationListItem);
       for (let j = 0; j < AnnotationListItem.length; j++) {
         if (AnnotationListItem[j].id === options.target.id) {
           AnnotationListItem[j].annotation.annotation_data = [
@@ -824,6 +829,7 @@ const LabelingContainer = () => {
         scaleX: 1,
         scaleY: 1,
       });
+      console.log(AnnotationListItem);
       for (let i = 0; i < AnnotationListItem.length; i++) {
         if (AnnotationListItem[i].id === options.target.id) {
           AnnotationListItem[i].annotation.annotation_data = [
@@ -840,8 +846,25 @@ const LabelingContainer = () => {
     if(canvas) canvas.renderAll();
   }
 
+  const handleModifiedObject = (options) => {
+    if(options.target.type === "polygon") {
+      console.log(AnnotationListItem);
+      for (let j = 0; j < AnnotationListItem.length; j++) {
+        console.log(AnnotationListItem[j].id + ", " + options.target.id);
+        if (AnnotationListItem[j].id === options.target.id) {
+          console.log(AnnotationListItem[j]);
+          /* AnnotationListItem[j].annotation.annotation_data = [
+            options.target.left,
+            options.target.top,
+            options.target.width,
+            options.target.height,
+          ]; */
+        }
+      }
+    }
+  };
+
   useEffect(() => {
-    console.log(selectObject);
     if(selectObject) {
       setLabelHeight(() => Math.round(selectObject.height));
       setLabelPerHeight(() => ((selectObject.height / imgHeight * imgRatio) * 100).toFixed(2));
@@ -863,8 +886,6 @@ const LabelingContainer = () => {
     setLabelPerDiag(() => ((Math.sqrt(Math.pow(instanceWidth, 2) + Math.pow(instanceHeight, 2)) / Math.sqrt(Math.pow(imgWidth * imgRatio, 2) + Math.pow(imgHeight * imgRatio, 2))) * 100).toFixed(2));
     setLabelCoordX(() => Math.round(positionX));
     setLabelCoordY(() => Math.round(positionY));
-    console.log(instanceWidth + ", " + instanceHeight);
-    console.log(positionX + ", " + positionY);
   }, [instanceWidth, instanceHeight, positionX, positionY]);
 
 
@@ -1025,10 +1046,13 @@ const LabelingContainer = () => {
 
 
   const isLock = (item: any, index: number) => {
+    if(!canvas) return;
+    console.log("lock-btn");
     for (let i = 0; i < ObjectListItem.length; i++) {
       if (ObjectListItem[i].id === item) {
         ObjectListItem[i].selectable =
           !ObjectListItem[i].selectable;
+          console.log("lock");
         /* if (!ObjectListItem[i].selectable) {
           document.getElementById('lockBtn' + index).classList.add('active');
         } else {
@@ -1036,6 +1060,12 @@ const LabelingContainer = () => {
             .getElementById('lockBtn' + index)
             .classList.remove('active');
         } */
+        for (let j = 0; j < InstanceListItem.length; j++) {
+          if (InstanceListItem[j].id === item) {
+            InstanceListItem[j].selectable = ObjectListItem[i].selectable;
+            console.log(InstanceListItem[j]);
+          }
+        }
         canvas.discardActiveObject();
         canvas.renderAll();
       }
@@ -1045,7 +1075,7 @@ const LabelingContainer = () => {
     for (let i = 0; i < ObjectListItem.length; i++) {
       if (ObjectListItem[i].id === item) {
         ObjectListItem[i].visible = !ObjectListItem[i].visible;
-        TagListItem[i].visible = ObjectListItem[i].visible;
+        TagListItem[i].visible = ObjectListItem[i].visible && isTagOn;
         /* if (!ObjectListItem[i].visible) {
           document
             .getElementById('visibleBtn' + index)
@@ -1055,6 +1085,11 @@ const LabelingContainer = () => {
             .getElementById('visibleBtn' + index)
             .classList.remove('active');
         } */
+        for (let j = 0; j < InstanceListItem.length; j++) {
+          if (InstanceListItem[j].id === item) {
+            InstanceListItem[j].visible = ObjectListItem[i].visible;
+          }
+        }
         canvas.discardActiveObject();
         canvas.renderAll();
       }
@@ -1067,6 +1102,7 @@ const LabelingContainer = () => {
     setIsSESOnOff(() => false);
   };
   const deleteItem = (key: any) => {
+    if(!canvas) return;
     let check = /^[0-9]+$/;
     if (key === 'Delete') {
       for (let i = 0; i < TagListItem.length; i++) {
@@ -1141,6 +1177,7 @@ const LabelingContainer = () => {
   const handleMouseWheel = (options: any) => {
     if(canvas) {
       //console.log('wheel');
+      console.log(imgRatio);
       let delta = options.e.deltaY;
       //let pointer = this.fCanvas.getPointer(options.e);
       let zoom = canvas.getZoom();
@@ -1344,7 +1381,6 @@ const LabelingContainer = () => {
     setIsTagOnOff((prev) => !prev);
   };
   useEffect(() => {
-    console.log("tag");
     if (!isTagOn) {
       /*let items = this.fCanvas.getObjects();
       for (let i = 0; i < items.length; i++) {
@@ -1545,6 +1581,7 @@ const LabelingContainer = () => {
     }
   }, [isBoxingOn]);
   let tempRect: fabric.Rect = null;
+  let TempPointArray = [];
   const handleBoxingDown = (options: any) => {
     if(!canvas || isSelectObjectOn) return;
     let pointer = canvas.getPointer(options);
@@ -1574,13 +1611,18 @@ const LabelingContainer = () => {
     endX = pointer.x;
     endY = pointer.y;
     if (
-      Math.abs(endX - startX) > 1 &&
-      Math.abs(endY - startY) > 1
+      Math.abs(endX - startX) < 3 &&
+      Math.abs(endY - startY) < 3
     ) {
+      drawPoints(pointer, "boxing");
+      if(autoPointList.length === 2){
+        isDown = false;
+      }
+    } else {
       setRect();
       //this.drawBoxing();
+      isDown = false;
     }
-    isDown = false;
   };
   const setDragBox = (nowX, nowY) => {
     let rTop, rLeft, rBottom, rRight;
@@ -1683,8 +1725,7 @@ const LabelingContainer = () => {
     tag.set('left', rect.left + rect.width / 2 - tag.width / 2);
     ObjectListItem.push(rect);
     TagListItem.push(tag);
-    canvas.add(rect);
-    canvas.add(tag);
+    
     //this.fCanvas.setActiveObject(rect);
     InstanceListItem.push({
       id: objId, //category id
@@ -1694,9 +1735,11 @@ const LabelingContainer = () => {
       gender: '',
       age: '',
       attrs: [],
+      selectable: true,
+      visible: true,
     });
     //console.log(this.InstanceListItem);
-    AnnotationListItem.push({
+    /* AnnotationListItem.push({
       id: objId,
       annotation: {
         annotation_id: aId,
@@ -1709,11 +1752,39 @@ const LabelingContainer = () => {
         },
         annotation_data: [rect.left, rect.top, rect.width, rect.height],
       },
-    });
-    //console.log(this.AnnotationListItem);
+    }); */
+    let annotation = {
+      id: objId,
+      annotation: {
+        annotation_id: aId,
+        annotation_type: {
+          annotation_type_id: 1,
+        },
+        annotation_category: {
+          annotation_category_id: 0,
+          annotation_category_attributes: [],
+        },
+        annotation_data: [rect.left, rect.top, rect.width, rect.height],
+      },
+    };
+    console.log(annotation);
+    //setAnnotationListItem(AnnotationListItem => [...AnnotationListItem, annotation]);
+    AnnotationListItem.push(annotation);
+    console.log(AnnotationListItem);
     //this.setDataImage();
     objId++;
+    canvas.add(rect);
+    canvas.add(tag);
+    //canvas.renderAll();
+    canvas.requestRenderAll();
   }
+
+  useEffect(() => {
+    if(!canvas) return;
+    console.log("anno");
+    console.log(AnnotationListItem);
+    canvas.renderAll();
+  }, [AnnotationListItem]);
 
   //**! polyline */
   const checkIsPolyline = () => {
@@ -1721,10 +1792,62 @@ const LabelingContainer = () => {
     setIsPolylineOnOff((prev) => !prev);
   };
   useEffect(() => {
-    if(isPolylineOn) {
+    if(isPolylineOn && canvas) {
+      canvas.defaultCursor = "crosshair";
       canvas.hoverCursor = "crosshair";
+      canvas.on("mouse:down", handlePolylineDown);
+      canvas.on("mouse:move", handlePolylineMove);
+      canvas.on("mouse:up", handlePolylineUp);
+      console.log(canvas);
+    } else if(!isPolylineOn && canvas) {
+      canvas.off("mouse:down");
+      canvas.off("mouse:move");
+      canvas.off("mouse:up");
     }
   }, [isPolylineOn]);
+  const handlePolylineDown = (options: any) => {
+    if(!canvas || isSelectObjectOn) return;
+    console.log("line");
+    if (drawMode) {
+      if (options.target && pointArray.length > 0 && options.target.id === pointArray[pointArray.length - 1].id) {
+        // when click on the first point
+        generatePolygon(pointArray, "polyline", "#ff0084");
+      } else {
+        addPoint(options, "polyline");
+      }
+    } else {
+      toggleDrawPolygon(options, "polyline");
+    }
+  };
+  const handlePolylineMove = (options: any) => {
+    if(!canvas || isSelectObjectOn) return;
+    let pointer = canvas.getPointer(options);
+    if (drawMode) {
+      if (activeLine && activeLine.type === 'line') {
+        activeLine.set({
+          x2: pointer.x,
+          y2: pointer.y,
+        });
+        if(activeShape) {
+          const points = activeShape.get('points');
+          points[pointArray.length] = {
+            x: pointer.x,
+            y: pointer.y,
+          };
+          activeShape.set({
+            points,
+          });
+        }
+      }
+      canvas.renderAll();
+    }
+  };
+  const handlePolylineUp = (options: any) => {
+    if(!canvas || isSelectObjectOn) return;
+    isDragging = false;
+    selection = true;
+  };
+
   //**! polygon */
   const [isPolygonOn, setIsPolygonOnOff] = useState<boolean>(false);
   const checkIsPolygon = () => {
@@ -1736,8 +1859,8 @@ const LabelingContainer = () => {
       canvas.defaultCursor = "crosshair";
       canvas.hoverCursor = "crosshair";
       canvas.on("mouse:down", handlePolygonDown);
-      canvas.on("mouse:move", handlePolyItemMove);
-      canvas.on("mouse:up", handlePolyItemUp);
+      canvas.on("mouse:move", handlePolygonMove);
+      canvas.on("mouse:up", handlePolygonUp);
     } else if(!isPolygonOn && canvas) {
       canvas.off("mouse:down");
       canvas.off("mouse:move");
@@ -1746,18 +1869,19 @@ const LabelingContainer = () => {
   }, [isPolygonOn]);
   const handlePolygonDown = (options: any) => {
     if(!canvas || isSelectObjectOn) return;
+    console.log(isSelectObjectOn);
     if (drawMode) {
       if (options.target && pointArray.length > 0 && options.target.id === pointArray[0].id) {
         // when click on the first point
         generatePolygon(pointArray, "polygon", "#0084ff");
       } else {
-        addPoint(options);
+        addPoint(options, "polygon");
       }
     } else {
-      toggleDrawPolygon(options);
+      toggleDrawPolygon(options, "polygon");
     }
   };
-  const handlePolyItemMove = (options: any) => {
+  const handlePolygonMove = (options: any) => {
     if(!canvas || isSelectObjectOn) return;
     let pointer = canvas.getPointer(options);
     if (drawMode) {
@@ -1766,19 +1890,21 @@ const LabelingContainer = () => {
           x2: pointer.x,
           y2: pointer.y,
         });
-        const points = activeShape.get('points');
-        points[pointArray.length] = {
-          x: pointer.x,
-          y: pointer.y,
-        };
-        activeShape.set({
-          points,
-        });
+        if(activeShape) {
+          const points = activeShape.get('points');
+          points[pointArray.length] = {
+            x: pointer.x,
+            y: pointer.y,
+          };
+          activeShape.set({
+            points,
+          });
+        }
       }
       canvas.renderAll();
     }
   };
-  const handlePolyItemUp = (options: any) => {
+  const handlePolygonUp = (options: any) => {
     if(!canvas || isSelectObjectOn) return;
     isDragging = false;
     selection = true;
@@ -1854,6 +1980,8 @@ const LabelingContainer = () => {
         gender: '',
         age: '',
         attrs: [],
+        selectable: true,
+        visible: true,
       });
       //console.log(this.InstanceListItem);
       AnnotationListItem.push({
@@ -1870,11 +1998,11 @@ const LabelingContainer = () => {
         },
       });
       objId++;
-
-    } else if (type === "autopoint") {
+    //} else if (type === "autopoint") {
+    } else {
       let optionAutopoint = {
         id: objId,
-        radius: 7 / imgRatio,
+        radius: 5 / imgRatio,
         stroke: 'black',
         strokeWidth: 1 / imgRatio,
         color: '#999999',
@@ -1907,7 +2035,7 @@ const LabelingContainer = () => {
         canvas.remove(sPoint);
         setRect();
       }
-    }
+    } 
   }
 
   //**! brush */
@@ -1938,8 +2066,8 @@ const LabelingContainer = () => {
       canvas.defaultCursor = "crosshair";
       canvas.hoverCursor = "crosshair";
       canvas.on("mouse:down", handleSegmentDown);
-      canvas.on("mouse:move", handlePolyItemMove);
-      canvas.on("mouse:up", handlePolyItemUp);
+      canvas.on("mouse:move", handleSegmentMove);
+      canvas.on("mouse:up", handleSegmentUp);
     } else if(!isSegmentOn && canvas) {
       canvas.off("mouse:down");
       canvas.off("mouse:move");
@@ -1953,11 +2081,39 @@ const LabelingContainer = () => {
         // when click on the first point
         generatePolygon(pointArray, "segment", "#eecc55");
       } else {
-        addPoint(options);
+        addPoint(options, "segment");
       }
     } else {
-      toggleDrawPolygon(options);
+      toggleDrawPolygon(options, "segment");
     }
+  };
+  const handleSegmentMove = (options: any) => {
+    if(!canvas || isSelectObjectOn) return;
+    let pointer = canvas.getPointer(options);
+    if (drawMode) {
+      if (activeLine && activeLine.type === 'line') {
+        activeLine.set({
+          x2: pointer.x,
+          y2: pointer.y,
+        });
+        if(activeShape) {
+          const points = activeShape.get('points');
+          points[pointArray.length] = {
+            x: pointer.x,
+            y: pointer.y,
+          };
+          activeShape.set({
+            points,
+          });
+        }
+      }
+      canvas.renderAll();
+    }
+  };
+  const handleSegmentUp = (options: any) => {
+    if(!canvas || isSelectObjectOn) return;
+    isDragging = false;
+    selection = true;
   };
 
   //**! keypoint */
@@ -2319,6 +2475,8 @@ const LabelingContainer = () => {
         gender: '',
         age: '',
         attrs: [],
+        selectable: true,
+        visible: true,
       });
 
       let cData = [
@@ -2395,7 +2553,7 @@ const LabelingContainer = () => {
   };
 
   //**! polygon module */
-  const toggleDrawPolygon = (options) => {
+  const toggleDrawPolygon = (options, type: string) => {
     if(!canvas) return;
     if (drawMode) {
       // stop draw mode
@@ -2410,12 +2568,16 @@ const LabelingContainer = () => {
       canvas.selection = false;
       drawMode = true;
       if(options)
-        addPoint(options);
+        addPoint(options, type);
     }
   };
+
   const drawPolyItem = (tool: any, coordinate: any, type: any, color: any, aId: any, type_id: any) => {
     if(!canvas) return;
     let fill = 'transparent';
+    if(type === "segment") {
+      fill = color + "4D";
+    }
     let option = {
       id: objId,
       tool: tool,
@@ -2434,9 +2596,9 @@ const LabelingContainer = () => {
       //hasControls: false,
     };
     let polyItem = new fabric.Polygon(coordinate, option);
-    /*if (isPolylineOn) {
+    if (type === "polyline") {
       polyItem = new fabric.Polyline(coordinate, option);
-    }*/
+    }
     let optionTag = {
       id: objId,
       fill: '#ffffff',
@@ -2465,6 +2627,8 @@ const LabelingContainer = () => {
       gender: '',
       age: '',
       attrs: [],
+      selectable: true,
+      visible: true,
     });
     //console.log(this.InstanceListItem);
     //console.log(coordinate);
@@ -2489,12 +2653,12 @@ const LabelingContainer = () => {
         annotation_data: cData,
       },
     });
-    if (type === 'polygon' || type === 'segment') {
+    if (type === 'polygon' || type === 'segment' || type === 'polyline') {
       editPolygon(polyItem);
     }
     objId++;
   };
-  const addPoint = (options: any) => {
+  const addPoint = (options: any, type: string) => {
     if(!canvas) return;
     let pointer = canvas.getPointer(options);
     const pointOption = {
@@ -2537,51 +2701,53 @@ const LabelingContainer = () => {
     };
     const line = new fabric.Line(linePoints, lineOption);
     //line.class = 'line';
-
-    if (activeShape) {
-      const pos = canvas.getPointer(options.e);
-      const points = activeShape.get('points');
-      points.push({
-        x: pos.x,
-        y: pos.y,
-      });
-      const polygon = new fabric.Polygon(points, {
-        stroke: '#333333',
-        strokeWidth: 1,
-        fill: '#cccccc',
-        opacity: 0.3,
-        selectable: false,
-        hasBorders: false,
-        hasControls: false,
-        evented: false,
-        objectCaching: false,
-      });
-      canvas.remove(activeShape);
-      canvas.add(polygon);
-      activeShape = polygon;
-      canvas.renderAll();
-    } else {
-      const polyPoint = [
-        {
-          x: pointer.x,
-          y: pointer.y,
-        },
-      ];
-      const polygon = new fabric.Polygon(polyPoint, {
-        stroke: '#333333',
-        strokeWidth: 1,
-        fill: '#cccccc',
-        opacity: 0.3,
-        selectable: false,
-        hasBorders: false,
-        hasControls: false,
-        evented: false,
-        objectCaching: false,
-      });
-      activeShape = polygon;
-      canvas.add(polygon);
+    console.log(type);
+    if(type !== "polyline") {
+      console.log("!line");
+      if (activeShape) {
+        const pos = canvas.getPointer(options.e);
+        const points = activeShape.get('points');
+        points.push({
+          x: pos.x,
+          y: pos.y,
+        });
+        const polygon = new fabric.Polygon(points, {
+          stroke: '#333333',
+          strokeWidth: 1,
+          fill: '#cccccc',
+          opacity: 0.3,
+          selectable: false,
+          hasBorders: false,
+          hasControls: false,
+          evented: false,
+          objectCaching: false,
+        });
+        canvas.remove(activeShape);
+        canvas.add(polygon);
+        activeShape = polygon;
+        canvas.renderAll();
+      } else {
+        const polyPoint = [
+          {
+            x: pointer.x,
+            y: pointer.y,
+          },
+        ];
+        const polygon = new fabric.Polygon(polyPoint, {
+          stroke: '#333333',
+          strokeWidth: 1,
+          fill: '#cccccc',
+          opacity: 0.3,
+          selectable: false,
+          hasBorders: false,
+          hasControls: false,
+          evented: false,
+          objectCaching: false,
+        });
+        activeShape = polygon;
+        canvas.add(polygon);
+      }
     }
-
     activeLine = line;
     pointArray.push(point);
     lineArray.push(line);
@@ -2609,14 +2775,14 @@ const LabelingContainer = () => {
     // remove selected Shape and Line
     canvas.remove(activeShape).remove(activeLine);
 
-    drawPolyItem("polygon", points, type, color, null, 0);
-    toggleDrawPolygon(null);
+    drawPolyItem(type, points, type, color, null, 0);
+    toggleDrawPolygon(null, "");
   };
   /**
    * define a function that can locate the controls.
    * this function will be used both for drawing and for interaction.
-   *//*
-  const polygonPositionHandler = (dim: any, finalMatrix: any, fabricObject: any) => {
+   */
+  function polygonPositionHandler(dim: any, finalMatrix: any, fabricObject: any) {
     let x =
         fabricObject.points[this.pointIndex].x - fabricObject.pathOffset.x,
       y = fabricObject.points[this.pointIndex].y - fabricObject.pathOffset.y;
@@ -2628,7 +2794,7 @@ const LabelingContainer = () => {
         fabricObject.calcTransformMatrix(),
       ),
     );
-  };*/
+  };
   /**
    * define a function that will define what the control does
    * this function will be called on every mouse move after a control has been
@@ -2637,7 +2803,7 @@ const LabelingContainer = () => {
    * and the current position in canvas coordinate
    * transform.target is a reference to the current object being transformed,
    */
-  const actionHandler = (eventData: any, transform: any, x: any, y: any) => {
+  function actionHandler (eventData: any, transform: any, x: any, y: any) {
     let polygon = transform.target,
       currentControl = polygon.controls[polygon.__corner],
       mouseLocalPosition = polygon.toLocalPoint(
@@ -2661,7 +2827,7 @@ const LabelingContainer = () => {
    * define a function that can keep the polygon in the same position when we change its
    * width/height/top/left.
    */
-  const anchorWrapper = (anchorIndex: any, fn: any) => {
+  function anchorWrapper (anchorIndex: any, fn: any) {
     return function (eventData: any, transform: any, x: any, y: any) {
       let fabricObject = transform.target,
         absolutePoint = fabric.util.transformPoint(
@@ -2787,14 +2953,15 @@ const LabelingContainer = () => {
     const lastControl = activeObject.points.length - 1;
     activeObject.cornerStyle = 'circle';
     activeObject.controls = activeObject.points.reduce(
-      (acc: any, point: any, index: any) => {
+      (acc: any, point: any, index: number) => {
         acc['p' + index] = new fabric.Control({
-          //positionHandler: polygonPositionHandler,
+          positionHandler: polygonPositionHandler,
           actionHandler: anchorWrapper(
             index > 0 ? index - 1 : lastControl,
             actionHandler,
           ),
           actionName: 'modifyPolygon',
+          pointIndex: index,
         });
         //console.log(index);
         return acc;
