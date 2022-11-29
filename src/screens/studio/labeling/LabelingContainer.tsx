@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useRef,
   useState,
+  useLayoutEffect,
 } from "react";
 import { useToast } from "@chakra-ui/react";
 import LabelingPresenter from "./LabelingPresenter";
@@ -39,6 +40,10 @@ import iconKeypoint from "../../../assets/images/studio/icon/instanceTools/icon-
 import iconOD from "../../../assets/images/studio/icon/instanceTools/icon-instance-OD.svg";
 import iconIS from "../../../assets/images/studio/icon/instanceTools/icon-instance-IS.svg";
 import iconSES from "../../../assets/images/studio/icon/instanceTools/icon-instance-SES.svg";
+import iconLock from "../../../assets/images/studio/icon/instanceTools/icon-lock-active.svg";
+import iconUnLock from "../../../assets/images/studio/icon/instanceTools/icon-unlock-dark.svg";
+import iconVisible from "../../../assets/images/studio/icon/instanceTools/icon-visible-dark.svg";
+import iconInvisible from "../../../assets/images/studio/icon/instanceTools/icon-invisible-active.svg";
 
 //let fabric = require("fabric.js");
 
@@ -193,6 +198,10 @@ const LabelingContainer = () => {
   const [isSegmentOn, setIsSegmentOnOff] = useState<boolean>(false);
 
   const [isKeypointOn, setIsKeypointOnOff] = useState<boolean>(false);
+
+  const refTools = useRef<any>(null);
+  const refTop = useRef<any>(null);
+  const refBottom = useRef<any>(null);
 
 
   // ! MainCenterBottom의 isOpen state toggle method
@@ -593,7 +602,9 @@ const LabelingContainer = () => {
   // ! 이미지에 새로운 이펙트가 들어가면 그때마다 order를 하나 올려서 히스토리를 저장
   useEffect(() => {
     if (selectedTask && currentDataURL) {
+      canvas.off('mouse:wheel');
       setCanvasImage();
+      canvas.on('mouse:wheel', handleMouseWheel);
       let lastOrder = 0;
       for (let i = 0; i < dataURLHistory.length; i++) {
         if (
@@ -641,7 +652,7 @@ const LabelingContainer = () => {
       //canvas.on('selection:updated', handleSelectionUpdated);
       //canvas.on('before:selection:cleared', beforeClearSelection);
       //canvas.on('selection:cleared', handleSelectionCleared);
-      canvas.on('mouse:wheel', handleMouseWheel);
+      //canvas.on('mouse:wheel', handleMouseWheel);
       //canvas.on('path:created', createPath);
       //ctx = canvas.getContext();
       fabric.Object.prototype.setControlsVisibility({
@@ -1060,6 +1071,11 @@ const LabelingContainer = () => {
             .getElementById('lockBtn' + index)
             .classList.remove('active');
         } */
+        if (!ObjectListItem[i].selectable) {
+          (document.getElementById('lockBtn' + index) as HTMLImageElement).src = iconLock;
+        } else {
+          (document.getElementById('lockBtn' + index) as HTMLImageElement).src = iconUnLock;
+        }
         for (let j = 0; j < InstanceListItem.length; j++) {
           if (InstanceListItem[j].id === item) {
             InstanceListItem[j].selectable = ObjectListItem[i].selectable;
@@ -1085,6 +1101,11 @@ const LabelingContainer = () => {
             .getElementById('visibleBtn' + index)
             .classList.remove('active');
         } */
+        if (!ObjectListItem[i].visible) {
+          (document.getElementById('visibleBtn' + index) as HTMLImageElement).src = iconVisible;
+        } else {
+          (document.getElementById('visibleBtn' + index) as HTMLImageElement).src = iconInvisible;
+        }
         for (let j = 0; j < InstanceListItem.length; j++) {
           if (InstanceListItem[j].id === item) {
             InstanceListItem[j].visible = ObjectListItem[i].visible;
@@ -1222,14 +1243,19 @@ const LabelingContainer = () => {
 
   //*************** Main function **********************/
 
+  const resetAutoTools = () => {
+    setIsODOnOff(() => false);
+    setIsISOnOff(() => false);
+    setIsSESOnOff(() => false);
+  }
   const resetTools = () => {
     if(canvas) {
       canvas.defaultCursor = "default";
       canvas.hoverCursor = "crosshair";
     }
-    setIsODOnOff(() => false);
+    /* setIsODOnOff(() => false);
     setIsISOnOff(() => false);
-    setIsSESOnOff(() => false);
+    setIsSESOnOff(() => false); */
     setIsSmartpenOnOff(() => false);
     setIsAutopointOnOff(() => false);
     setIsBoxingOnOff(() => false);
@@ -1350,7 +1376,7 @@ const LabelingContainer = () => {
       zoom *= imgRatio;
       let width = imgWidth * (zoom / 100);
       let height = imgHeight * (zoom / 100);
-      console.log(width + ", " + height + ", " + imgRatio);
+      //console.log(width + ", " + height + ", " + imgRatio);
       canvas.setWidth(width);
       canvas.setHeight(height);
       canvas.setZoom(zoom / 100);
@@ -1434,6 +1460,7 @@ const LabelingContainer = () => {
   };
   const onSubmitReset = () => {
     // Todo: 리셋 초기화 내용 작업 필요
+    resetAutoTools();
     resetTools();
     clearDatas();
     canvas.clear();
@@ -1500,6 +1527,7 @@ const LabelingContainer = () => {
     if(isAutoLabelingOn) {
       resetTools();
       setIsSESOnOff((prev) => !prev);
+      console.log(isSESOn);
     }
   };
   useEffect(() => {
@@ -1514,7 +1542,7 @@ const LabelingContainer = () => {
         labeling_type: 3,
       });
     } else {
-      clearAutoLabeling('IS');
+      clearAutoLabeling('SES');
       //isClassSettingOn = false;
       setIsClassOnOff(() => false);
     }
@@ -3041,17 +3069,100 @@ const LabelingContainer = () => {
     return new fabric.Line(coords, optionLine);
   };
 
-  const refTools = useRef<any>(null);
-  const refTop = useRef<any>(null);
-  const refBottom = useRef<any>(null);
+  // ! why same
+
+  useLayoutEffect(() => {
+    const { current } = refTools;
+    const trigger = () => {
+      console.log(refTools.current.scrollHeight + ", " + refTools.current.clientHeight);
+      const hasOverflow = current.scrollHeight > current.clientHeight;
+      if (hasOverflow) {
+        console.log("overflow true");
+        document.getElementById("arrowToolsTop").style.display = "flex";
+        document.getElementById("arrowToolsBottom").style.display = "flex";
+      } else {
+        console.log("why same");
+        document.getElementById("arrowToolsTop").style.display = "none";
+        document.getElementById("arrowToolsBottom").style.display = "none";
+      }
+    };
+    if (current) {
+      if ('ResizeObserver' in window) {
+        new ResizeObserver(trigger).observe(current);
+      }
+      trigger();
+    }
+    document.getElementById("toolsWrap").addEventListener("scroll", handleToolsScroll);
+  }, [refTools, refTools.current,]);
+
+  useLayoutEffect(() => {
+    console.log("top");
+    console.log(refTools.current.scrollHeight + ", " + refTools.current.clientHeight);
+  }, [refTop, refTop.current]);
+
+  useLayoutEffect(() => {
+    console.log("Bottom");
+    console.log(refTools.current.scrollHeight + ", " + refTools.current.clientHeight);
+  }, [refBottom, refBottom.current]);
+
+  const handleToolsScroll = () => {
+    console.log(refTools.current.scrollHeight + ", " + refTools.current.clientHeight);
+  };
+
   const onMoveToToolsTop = () => {
     refTop.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    console.log(refTop.current);
   };
   const onMoveToToolsEnd = () => {
     refBottom.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   };
+
   let imgIndexLeft = 0, imgIndexRight = 5;
+
+  const refPicker = useRef<any>(undefined);
+
+  useLayoutEffect(() => {
+    const { current } = refPicker;
+    const trigger = () => {
+      const hasOverflow = current.scrollWidth > current.clientWidth;
+      if (hasOverflow) {
+        console.log("picker overflow true: " + imgIndexLeft + ", " + imgIndexRight);
+        if(imgIndexLeft <= 0) {
+          document.getElementById("arrowPickerLeft").style.display = "none";
+        } else {
+          document.getElementById("arrowPickerLeft").style.display = "flex";
+        }
+        if(imgIndexRight >= tasks.length - 1) {
+          document.getElementById("arrowPickerRight").style.display = "none";
+        } else {
+          document.getElementById("arrowPickerRight").style.display = "flex";
+        }
+      }
+    };
+    if (current) {
+      if ('ResizeObserver' in window) {
+        new ResizeObserver(trigger).observe(current);
+      }
+      trigger();
+    }
+    let picker = document.getElementById("imgPicker"); 
+    if(picker)
+      picker.addEventListener("scroll", handlePickerScroll);
+  }, [refPicker, refPicker.current]);
+
+  const handlePickerScroll = () => {
+    console.log(imgIndexLeft + ", " + imgIndexRight);
+    if(imgIndexLeft <= 0) {
+      document.getElementById("arrowPickerLeft").style.display = "none";
+    } else {
+      document.getElementById("arrowPickerLeft").style.display = "flex";
+    }
+    if(imgIndexRight >= tasks.length - 1) {
+      document.getElementById("arrowPickerRight").style.display = "none";
+    } else {
+      document.getElementById("arrowPickerRight").style.display = "flex";
+    }
+  };
+
   const onMoveToToolsLeft = () => {
     if(imgIndexLeft < 5){
       imgIndexLeft = 0; 
@@ -3118,6 +3229,13 @@ const LabelingContainer = () => {
         break;
     }
     return icon;
+  };
+
+  const refBtnLock = useRef<any>(null);
+  const refBtnVisible = useRef<any>(null);
+  const refBtnDelete = useRef<any>(null);
+  const onLockInstance = () => {
+    //refBtnLock.current?
   };
 
   if (pId) {
@@ -3225,6 +3343,7 @@ const LabelingContainer = () => {
         isAutoLabelingOn={isAutoLabelingOn}
         objectType={objectType}
         refTools={refTools}
+        refPicker={refPicker}
         refTop={refTop}
         refBottom={refBottom}
         onMoveToToolsTop={onMoveToToolsTop}
@@ -3232,6 +3351,9 @@ const LabelingContainer = () => {
         onMoveToToolsLeft={onMoveToToolsLeft}
         onMoveToToolsRight={onMoveToToolsRight}
         setInstanceIcon={setInstanceIcon}
+        refBtnLock={refBtnLock}
+        refBtnVisible={refBtnVisible}
+        refBtnDelete={refBtnDelete}
       />
     );
   }

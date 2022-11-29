@@ -200,8 +200,12 @@ interface ILabelingPresenter {
     isAutoLabelingOn: boolean;
     objectType: string;
     refTools: any;
+    refPicker: any;
     refTop: any;
     refBottom: any;
+    refBtnLock: any;
+    refBtnVisible: any;
+    refBtnDelete: any;
     onMoveToToolsTop: () => void;
     onMoveToToolsEnd: () => void;
     onMoveToToolsLeft: () => void;
@@ -541,7 +545,7 @@ interface ILabelingPresenter {
   `;
   const FileListArrow = styled.div`
     width: 20px;
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     padding-left: 3px;
@@ -772,8 +776,12 @@ interface ILabelingPresenter {
     isAutoLabelingOn,
     objectType,
     refTools,
+    refPicker,
     refTop,
     refBottom,
+    refBtnLock,
+    refBtnVisible,
+    refBtnDelete,
     isLock,
     isVisible,
     isDelete,
@@ -1061,7 +1069,7 @@ interface ILabelingPresenter {
                   <ZoomInput
                     id={"zoom-range"}
                     type={"range"}
-                    min={0}
+                    min={10}
                     max={200}
                     //defaultValue={"100"}
                     value={resizingVal === null ? "100" : resizingVal}
@@ -1073,12 +1081,12 @@ interface ILabelingPresenter {
             </StudioHeader>
             <Main>
               <MainLeftWrap>
-                <LeftListArrow onClick={() => onMoveToToolsTop()}>
+                <LeftListArrow id={"arrowToolsTop"} onClick={() => onMoveToToolsTop()}>
                   <Icon 
                     src={iconArrowTop}
                   />
                 </LeftListArrow>
-                <MainLeft ref={refTools}>
+                <MainLeft id={"toolsWrap"} ref={refTools}>
                   <LeftItemContainer onClick={checkIsMove} ref={refTop}>
                     <Icon
                       src={isMoveOn ? iconToolMoveSelected : iconToolMove}
@@ -1320,7 +1328,7 @@ interface ILabelingPresenter {
                     </AlertModal> */}
                   </LeftItemContainer>
                 </MainLeft>
-                <LeftListArrow onClick={() => onMoveToToolsEnd()}>
+                <LeftListArrow id={"arrowToolsBottom"} onClick={() => onMoveToToolsEnd()}>
                   <Icon 
                     src={iconArrowBottom}
                   />
@@ -1429,11 +1437,11 @@ interface ILabelingPresenter {
                 </MainCenterBottom>
                 {isFileSelectorOpen && (
                   <MainCenterImagePickerWrapper>
-                  <FileListArrow onClick={() => onMoveToToolsLeft()}>
+                  <FileListArrow id={"arrowPickerLeft"} onClick={() => onMoveToToolsLeft()}>
                     <Icon
                       src={iconArrowLeft} />
                   </FileListArrow>
-                  <MainCenterImagePicker>
+                  <MainCenterImagePicker id={"imgPicker"} ref={refPicker}>
                       {loading && isFirst ? (
                         <SpinnerWrapper>
                           <Spinner speed="0.35s" />
@@ -1588,7 +1596,7 @@ interface ILabelingPresenter {
                         </>
                       )}
                     </MainCenterImagePicker>
-                    <FileListArrow onClick={() => onMoveToToolsRight()}>
+                    <FileListArrow id={"arrowPickerRight"} onClick={() => onMoveToToolsRight()}>
                       <Icon
                         src={iconArrowRight} />
                     </FileListArrow>
@@ -1798,7 +1806,7 @@ interface ILabelingPresenter {
                           src={isInstanceOpen ? arrowDown : arrowUp}
                           style={{ marginRight: 17 }}
                         />
-                        <ArrowDropDownText>Isntance</ArrowDropDownText>
+                        <ArrowDropDownText>Instance</ArrowDropDownText>
                       </DropBoxContentTitle>
                     </DropBoxContentWrapper>
                     {isInstanceOpen && (
@@ -1912,18 +1920,21 @@ interface ILabelingPresenter {
                             </DropBoxTextWrapper>
                             <Icon
                               id={"lockBtn" + index}
+                              ref={refBtnLock}
                               src={instance.selectable ? iconUnLock : iconLock}
                               style={{ marginLeft: 10, marginRight: 5 }}
                               onClick={() => isLock(instance.id, index)}
                             />
                             <Icon
                               id={"visibleBtn" + index}
+                              ref={refBtnVisible}
                               src={instance.visible ? iconVisible : iconInvisible}
                               style={{ marginLeft: 5, marginRight: 5 }}
                               onClick={() => isVisible(instance.id, index)}
                             />
                             <Icon
                               id={"deleteBtn" + index}
+                              ref={refBtnDelete}
                               src={iconDelete}
                               style={{ marginLeft: 5, marginRight: 5 }}
                               onClick={() => isDelete(instance.id)}
