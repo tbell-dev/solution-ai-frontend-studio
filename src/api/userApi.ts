@@ -7,6 +7,7 @@ export interface IUserWorkStatics {
 }
 
 export interface IUser {
+  index?: number;
   userId: string;
   userDisplayName: string;
   userEmail: string;
@@ -19,14 +20,23 @@ export interface ILoginRequestPayload {
   user_password: string;
 }
 
+export interface IGetUserRoleParams {
+  user_id: string;
+}
+
 export interface ILoginResponsePayload {
-  token: string;
-  id: number;
+  accessToken: string;
+  refreshToken: string;
+  id: string;
+  isAdmin: boolean;
 }
 
 // eslint-disable-next-line
 export default {
   login: (form: ILoginRequestPayload) => callApi("post", "/auth/login", form),
-  getAllUsers: (param: any) =>
-    callApi("get", "/auth/user/search", null, undefined, param),
+  logout: (jwt?: string) => callApi("get", "/auth/logout", null, jwt),
+  getUserRole: (param: IGetUserRoleParams, jwt?: string) =>
+    callApi("get", "/auth/user/role", null, jwt, param),
+  getAllUsers: (param: any, jwt?: string) =>
+    callApi("get", "/auth/user/search", null, jwt, param),
 };

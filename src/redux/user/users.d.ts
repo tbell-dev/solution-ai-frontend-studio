@@ -2,6 +2,8 @@
 
 export interface IUserState {
   isLoggedIn: boolean;
-  token: string | null;
-  id: number | null;
+  accessToken: string | null;
+  refreshToken: string | null;
+  id: string | null;
+  isAdmin: boolean;
 }

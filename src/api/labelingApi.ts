@@ -6,28 +6,14 @@ export interface IUpdateTaskParams {
   task_id?: number;
 }
 
-//! Task에 할당되는 임의의 유저에 대한 interface
+//! autolabeling
 export interface IAutoLabeling {
-  id: string;
-  displayName: string;
-  email: string;
+  
 }
 
-// ! Task interface
+// ! labeling
 export interface ILabeling {
-  taskId: number;
-  imageName: string;
-  image: string;
-  imageThumbnail: string;
-  taskStatus: number;
-  taskStep?: number;
-  taskStatusName: WorkStatusType | undefined;
-  imageFormat: string;
-  imageWidth: number;
-  imageHeight: number;
-  imageSize: number;
-  created?: number;
-  updated?: number;
+  
 }
 
 // eslint-disable-next-line

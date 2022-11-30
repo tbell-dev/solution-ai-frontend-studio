@@ -22,6 +22,7 @@ import projectApi, {
   IGetProjectParam,
   IProjectInfo,
 } from "../../../api/projectApi";
+import { useAppSelector } from "../../../hooks";
 import labelingApi, { ILabeling, IAutoLabeling } from "../../../api/labelingApi";
 import { fabric } from "fabric";
 import { is } from "immer/dist/internal";
@@ -71,6 +72,7 @@ export interface IDataURLHistory {
 }
 
 const LabelingContainer = () => {
+  const loggedInUser = useAppSelector((state) => state.userReducer);
   // ! project ID를 URL로부터 Get
   const { pId } = useParams();
   const location = useLocation();
@@ -199,9 +201,9 @@ const LabelingContainer = () => {
 
   const [isKeypointOn, setIsKeypointOnOff] = useState<boolean>(false);
 
-  const refTools = useRef<any>(null);
-  const refTop = useRef<any>(null);
-  const refBottom = useRef<any>(null);
+  const refTools = useRef<any>(undefined);
+  const refTop = useRef<any>(undefined);
+  const refBottom = useRef<any>(undefined);
 
 
   // ! MainCenterBottom의 isOpen state toggle method
@@ -673,6 +675,9 @@ const LabelingContainer = () => {
   const setCanvasImage = async () => {
     if (currentDataURL && canvas) {
       canvas.clear();
+      resetTools();
+      resetAutoTools();
+      clearDatas();
       const res = await labelingApi.searchAnnotationByTask(
         {
           project_id: parseInt(pId),
@@ -1000,7 +1005,8 @@ const LabelingContainer = () => {
           {
             task_status_progress: status,
             comment_body: '',
-          }
+          },
+          loggedInUser.accessToken!
         );
         if (res && res.status === 200) {
           toast({
@@ -1101,7 +1107,7 @@ const LabelingContainer = () => {
             .getElementById('visibleBtn' + index)
             .classList.remove('active');
         } */
-        if (!ObjectListItem[i].visible) {
+        if (ObjectListItem[i].visible) {
           (document.getElementById('visibleBtn' + index) as HTMLImageElement).src = iconVisible;
         } else {
           (document.getElementById('visibleBtn' + index) as HTMLImageElement).src = iconInvisible;
@@ -3074,14 +3080,11 @@ const LabelingContainer = () => {
   useLayoutEffect(() => {
     const { current } = refTools;
     const trigger = () => {
-      console.log(refTools.current.scrollHeight + ", " + refTools.current.clientHeight);
       const hasOverflow = current.scrollHeight > current.clientHeight;
       if (hasOverflow) {
-        console.log("overflow true");
         document.getElementById("arrowToolsTop").style.display = "flex";
         document.getElementById("arrowToolsBottom").style.display = "flex";
       } else {
-        console.log("why same");
         document.getElementById("arrowToolsTop").style.display = "none";
         document.getElementById("arrowToolsBottom").style.display = "none";
       }
@@ -3092,22 +3095,7 @@ const LabelingContainer = () => {
       }
       trigger();
     }
-    document.getElementById("toolsWrap").addEventListener("scroll", handleToolsScroll);
-  }, [refTools, refTools.current,]);
-
-  useLayoutEffect(() => {
-    console.log("top");
-    console.log(refTools.current.scrollHeight + ", " + refTools.current.clientHeight);
-  }, [refTop, refTop.current]);
-
-  useLayoutEffect(() => {
-    console.log("Bottom");
-    console.log(refTools.current.scrollHeight + ", " + refTools.current.clientHeight);
-  }, [refBottom, refBottom.current]);
-
-  const handleToolsScroll = () => {
-    console.log(refTools.current.scrollHeight + ", " + refTools.current.clientHeight);
-  };
+  }, [refTools, refTools.current, refTools.current?.scrollHeight, refTools.current?.clientHeight]);
 
   const onMoveToToolsTop = () => {
     refTop.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -3125,7 +3113,6 @@ const LabelingContainer = () => {
     const trigger = () => {
       const hasOverflow = current.scrollWidth > current.clientWidth;
       if (hasOverflow) {
-        console.log("picker overflow true: " + imgIndexLeft + ", " + imgIndexRight);
         if(imgIndexLeft <= 0) {
           document.getElementById("arrowPickerLeft").style.display = "none";
         } else {
@@ -3147,10 +3134,9 @@ const LabelingContainer = () => {
     let picker = document.getElementById("imgPicker"); 
     if(picker)
       picker.addEventListener("scroll", handlePickerScroll);
-  }, [refPicker, refPicker.current]);
+  }, [refPicker, refPicker.current, refPicker.current?.scrollWidth, refPicker.current?.clientWidth]);
 
   const handlePickerScroll = () => {
-    console.log(imgIndexLeft + ", " + imgIndexRight);
     if(imgIndexLeft <= 0) {
       document.getElementById("arrowPickerLeft").style.display = "none";
     } else {
@@ -3231,16 +3217,146 @@ const LabelingContainer = () => {
     return icon;
   };
 
-  const refBtnLock = useRef<any>(null);
-  const refBtnVisible = useRef<any>(null);
-  const refBtnDelete = useRef<any>(null);
-  const onLockInstance = () => {
-    //refBtnLock.current?
+  const refBtnLock = useRef<any>(undefined);
+  const refBtnVisible = useRef<any>(undefined);
+  const refBtnDelete = useRef<any>(undefined);
+
+  // ! 완료 버튼 클릭 시 호출
+  const handleCompleted = async () => {
+    if (pId && selectedTask && currentDataURL) {
+      const currentStep = selectedTask.taskStep;
+      if (currentStep === 2) {
+        if (!selectedTask.taskValidator) {
+          toast({
+            title: "Task의 검수담당자가 아닙니다.",
+            status: "error",
+            position: "top",
+            duration: 2000,
+            isClosable: true,
+          });
+          return;
+        }
+        if (
+          selectedTask.taskValidator &&
+          loggedInUser.id !== selectedTask.taskValidator.id
+        ) {
+          toast({
+            title: "Task의 검수담당자만 가능한 작업입니다.",
+            status: "error",
+            position: "top",
+            duration: 2000,
+            isClosable: true,
+          });
+          return;
+        }
+      }
+
+      const dataSaveRes = await saveData();
+
+      if (dataSaveRes) {
+        const res = await taskApi.updateTaskStatus(
+          { project_id: parseInt(pId), task_id: selectedTask.taskId },
+          { task_status_progress: 3 },
+          loggedInUser.accessToken!
+        );
+        if (res && res.status === 200) {
+          toast({
+            title: "Task 업데이트 완료",
+            status: "success",
+            position: "top",
+            duration: 2000,
+            isClosable: true,
+          });
+          switch (currentStep) {
+            case 1:
+              setSelectedTask((prev) => ({
+                ...prev!,
+                taskStep: 2,
+                taskStatus: 1,
+              }));
+              break;
+            case 2:
+              setSelectedTask((prev) => ({
+                ...prev!,
+                taskStatus: 3,
+              }));
+              break;
+          }
+        }
+      }
+    }
+  };
+  // ! 반려 팝업 노출 상태 state
+  const [isOpenReject, setIsOpenReject] = useState<boolean>(false);
+  // ! 반려 팝업에서 반려 사유 입력 내용 저장 state
+  const [rejectText, setRejectText] = useState<string>();
+  // ! 반려 버튼 클릭 시 반려 팝업 노출 on
+  const handleOpenReject = () => {
+    setIsOpenReject(true);
+  };
+  // ! 반려 팝업 닫기 버튼 클릭 시 팝업 미노출 on
+  const handleCancelReject = () => {
+    setIsOpenReject(false);
+  };
+  // ! 반려 팝업에서 적용 버튼 클릭 시 호출 function
+  const onSubmitReject = async () => {
+    if (pId && selectedTask && rejectText && rejectText !== "") {
+      const res = await taskApi.updateTaskStatus(
+        { project_id: parseInt(pId), task_id: selectedTask.taskId },
+        { task_status_progress: 4, comment_body: rejectText },
+        loggedInUser.accessToken!
+      );
+      if (res && res.status === 200) {
+        toast({
+          title: "반려 처리 완료",
+          status: "success",
+          position: "top",
+          duration: 2000,
+          isClosable: true,
+        });
+        setSelectedTask((prev) => ({
+          ...prev!,
+          taskStatus: 4,
+        }));
+      }
+    }
+    setIsOpenReject(false);
+  };
+  // ! 반려 팝업에서 textarea의 입력 내용 handle change
+  const handleSetRejectText = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    setRejectText(e.target.value);
+  };
+  // ! 반려 상태일 때 반려 사유 보기 버튼 클릭에 관한 state
+  const [showRejectComment, setShowRejectComment] = useState<boolean>(false);
+  // ! 반려 사유 보기 팝업 닫기 시 호출
+  const handleCancelRejectComment = () => {
+    setShowRejectComment(false);
+    setRejectComment(undefined);
+  };
+  // ! 반려 사유 보기 팝업의 반려 사유 내용 저장 state
+  const [rejectComment, setRejectComment] = useState<string>();
+  // !
+  // ! 반려 사유 보기 버튼 클릭 시 호출되며 반려 사유를 서버로부터 받아온다.
+  const handleShowRejctHelp = async () => {
+    if (pId && selectedTask) {
+      const res = await taskApi.getTaskRejectComment(
+        {
+          project_id: parseInt(pId),
+          task_id: selectedTask.taskId,
+        },
+        loggedInUser.accessToken!
+      );
+      if (res && res.status === 200) {
+        setRejectComment(res.data.comment_body);
+        setShowRejectComment(true);
+      }
+    }
   };
 
   if (pId) {
     return (
       <LabelingPresenter
+        currentUser={loggedInUser}
         currentDataURL={currentDataURL}
         projectInfo={projectInfo}
         examinee={examinee}
@@ -3354,6 +3470,16 @@ const LabelingContainer = () => {
         refBtnLock={refBtnLock}
         refBtnVisible={refBtnVisible}
         refBtnDelete={refBtnDelete}
+        isOpenReject={isOpenReject}
+        rejectComment={rejectComment}
+        showRejectComment={showRejectComment}
+        handleCompleted={handleCompleted}
+        handleOpenReject={handleOpenReject}
+        handleCancelReject={handleCancelReject}
+        onSubmitReject={onSubmitReject}
+        handleSetRejectText={handleSetRejectText}
+        handleShowRejctHelp={handleShowRejctHelp}
+        handleCancelRejectComment={handleCancelRejectComment}
       />
     );
   }

@@ -14,6 +14,7 @@ import {
 interface IModalProps {
   title: string;
   isOpen: boolean;
+  noSubmit?: boolean;
   onClose: () => void;
   onSubmit: () => void;
   txtSubmit: string;
@@ -30,6 +31,7 @@ const Modal: React.FC<IModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
+  noSubmit,
   txtSubmit,
   loading,
   children,
@@ -86,15 +88,17 @@ const Modal: React.FC<IModalProps> = ({
                 제거하기
               </Button>
             )}
-            <Button
-              onClick={onSubmit}
-              bgColor={"#3580E3"}
-              color={"white"}
-              width={"80px"}
-              height={"35px"}
-            >
-              {txtSubmit}
-            </Button>
+            {!noSubmit && (
+              <Button
+                onClick={onSubmit}
+                bgColor={"#3580E3"}
+                color={"white"}
+                width={"80px"}
+                height={"35px"}
+              >
+                {txtSubmit}
+              </Button>
+            )}
           </ModalFooter>
         </ModalContent>
       </Popup>
