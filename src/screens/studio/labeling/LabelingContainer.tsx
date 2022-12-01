@@ -3137,6 +3137,17 @@ const LabelingContainer = () => {
   }, [refPicker, refPicker.current, refPicker.current?.scrollWidth, refPicker.current?.clientWidth]);
 
   const handlePickerScroll = () => {
+    let scrollLocation = refPicker.current.scrollLeft; // 현재 스크롤바 위치
+	  let fullWidth = refPicker.current.scrollWidth; // 전체 길이
+    let clientWidth = refPicker.current.clientWidth; // 보이는 길이
+
+    let boundary = refPicker.current.scrollWidth / tasks.length;
+    
+    imgIndexLeft = Math.round(scrollLocation / boundary);
+    imgIndexRight = imgIndexLeft + 5;
+
+    //console.log(imgIndexLeft + " : " + imgIndexRight);
+
     if(imgIndexLeft <= 0) {
       document.getElementById("arrowPickerLeft").style.display = "none";
     } else {
@@ -3228,7 +3239,7 @@ const LabelingContainer = () => {
       if (currentStep === 2) {
         if (!selectedTask.taskValidator) {
           toast({
-            title: "Task의 검수담당자가 아닙니다.",
+            title: "Task의 검수 담당자가 아닙니다.",
             status: "error",
             position: "top",
             duration: 2000,
@@ -3241,7 +3252,7 @@ const LabelingContainer = () => {
           loggedInUser.id !== selectedTask.taskValidator.id
         ) {
           toast({
-            title: "Task의 검수담당자만 가능한 작업입니다.",
+            title: "Task의 검수 담당자만 가능한 작업입니다.",
             status: "error",
             position: "top",
             duration: 2000,
