@@ -211,7 +211,7 @@ interface ILabelingPresenter {
   labelPerWidth: string; 
   labelPerHeight: string; 
   labelPerDiag: string;
-  InstanceListItem: any[];
+  ObjectListItem: any[];
   isAutoLabelingOn: boolean;
   objectType: string;
   refTools: any;
@@ -443,6 +443,7 @@ const UnderBar = styled.span`
   flex: none;
   order: 0;
   align-self: stretch;
+
   flex-grow: 0;
 `;
 const MainCenterWrapper = styled.div`
@@ -800,7 +801,7 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
   labelPerWidth, 
   labelPerHeight, 
   labelPerDiag,
-  InstanceListItem,
+  ObjectListItem,
   isAutoLabelingOn,
   objectType,
   refTools,
@@ -1960,9 +1961,9 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                       </DropBoxInstanceDescRow>
                     </DropBoxInstanceDescWrapper>
                   )}
-                  {isInstanceOpen && InstanceListItem.length > 0 && (
+                  {isInstanceOpen && ObjectListItem.length > 0 && (
                     <DropBoxInstanceWrapper>
-                      {InstanceListItem.map((instance, index) => {
+                      {ObjectListItem.map((item, index) => {
                             return <DropBoxInstanceItem
                           key={index}
                           id={"instance" + index}
@@ -1977,33 +1978,33 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                         >
                           <DropBoxTextWrapper onClick={() => setIsClass(index)}>
                             <Icon
-                              src={setInstanceIcon(instance.tool)}
+                              src={setInstanceIcon(item.object.tool)}
                               style={{ marginLeft: 10, marginRight: 10 }}
                             />
                             <DropBoxNormalText>
-                              {instance.id + ": " + instance.className}
+                              {item.object.id + ": " + item.className}
                             </DropBoxNormalText>
                           </DropBoxTextWrapper>
                           <Icon
                             id={"lockBtn" + index}
                             ref={refBtnLock}
-                            src={instance.selectable ? iconUnLock : iconLock}
+                            src={item.object.selectable ? iconUnLock : iconLock}
                             style={{ marginLeft: 10, marginRight: 5 }}
-                            onClick={() => isLock(instance.id, index)}
+                            onClick={() => isLock(item.object.id, index)}
                           />
                           <Icon
                             id={"visibleBtn" + index}
                             ref={refBtnVisible}
-                            src={instance.visible ? iconVisible : iconInvisible}
+                            src={item.object.visible ? iconVisible : iconInvisible}
                             style={{ marginLeft: 5, marginRight: 5 }}
-                            onClick={() => isVisible(instance.id, index)}
+                            onClick={() => isVisible(item.object.id, index)}
                           />
                           <Icon
                             id={"deleteBtn" + index}
                             ref={refBtnDelete}
                             src={iconDelete}
                             style={{ marginLeft: 5, marginRight: 5 }}
-                            onClick={() => isDelete(instance.id)}
+                            onClick={() => isDelete(item.object.id)}
                           />
                         </DropBoxInstanceItem>
                       })}

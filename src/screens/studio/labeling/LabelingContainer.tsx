@@ -71,6 +71,14 @@ export interface IDataURLHistory {
   dataURL: string;
 }
 
+export interface ICanvasHistory {
+  currentState: string; 
+  stateStack: string[]; //Undo stack
+  redoStack: string[]; //Redo stack
+  locked: boolean; //Determines if the state can currently be saved.
+  maxCount: number;
+}
+
 const LabelingContainer = () => {
   const loggedInUser = useAppSelector((state) => state.userReducer);
   // ! project ID를 URL로부터 Get
@@ -120,6 +128,10 @@ const LabelingContainer = () => {
   const [projectUser, setProjectUser] = useState<IUser[]>([]);
   // ! 프로젝트 정보
   const [projectInfo, setProjectInfo] = useState<IProjectInfo | null>();
+  const [selectedTool, setSelectedTool] = useState("");
+  const currentTool = useRef(selectedTool);
+
+  const [canvasHistory, setCanvasHistory] = useState<ICanvasHistory[]>([]);
 
   let isDown = false, drawMode = false, isDragging = false, selection = false, isSelectObjectOn = false;
   let objId = 0;
@@ -129,14 +141,16 @@ const LabelingContainer = () => {
   let activeShape: any = null;
   let lineArray: any[] = [];
 
+  const [objectId, setObjectId] = useState(0);
+
   const [instanceWidth, setInstanceWidth] = useState(0);
   const [instanceHeight, setInstanceHeight] = useState(0);
   const [positionX, setPositionX] = useState(0);
   const [positionY, setPositionY] = useState(0);
   const [objectType, setObjectType] = useState("");
-  const [objectId, setObjectId] = useState(-1);
+  const [selectedObjectId, setSelectedObjectId] = useState(-1);
 
-  const [selectObject, setSelectObject] = useState<fabric.Object>();
+  const [selectedObject, setSelectedObject] = useState<fabric.Object>();
   const [labelWidth, setLabelWidth] = useState(0);
   const [labelHeight, setLabelHeight] = useState(0);
   const [labelCoordX, setLabelCoordX] = useState(0);
@@ -151,9 +165,10 @@ const LabelingContainer = () => {
   const [imgHeight, setimgHeight] = useState(0);
 
   const [ObjectListItem, setObjectListItem] = useState([]);
-  const [InstanceListItem, setInstanceListItem] = useState([]);
+  const currentObjectItem = useRef(ObjectListItem);
+  /* const [InstanceListItem, setInstanceListItem] = useState([]);
   const [AnnotationListItem, setAnnotationListItem] = useState([]);
-  const [TagListItem, setTagListItem] = useState([]);
+  const [TagListItem, setTagListItem] = useState([]); */
   const [DeleteIDList, setDeleteIDList] = useState([]);
   const [instanceClass, setInstanceClass] = useState("");
   const [instanceGender, setInstanceGender] = useState("");
@@ -171,6 +186,7 @@ const LabelingContainer = () => {
   const [isMoveOn, setIsMoveOnOff] = useState<boolean>(false);
 
   const [isTagOn, setIsTagOnOff] = useState<boolean>(false);
+  const isTag = useRef(isTagOn);
 
   const [isClassOn, setIsClassOnOff] = useState<boolean>(false);
 
@@ -645,8 +661,12 @@ const LabelingContainer = () => {
 
   useEffect(() => {
     if(canvas) {
+      setContext(() => canvas.getContext());
       //canvas.on('mouse:down:before', beforeDownCanvas);
       //canvas.on('mouse:out', outCanvas);
+      canvas.on('mouse:down', handleCanvasDown);
+      canvas.on('mouse:move', handleCanvasMove);
+      canvas.on('mouse:up', handleCanvasUp);
       canvas.on('object:moving', handleMoveObject);
       canvas.on('object:scaling', handleScaleObject);
       canvas.on('object:modified', handleModifiedObject);
@@ -668,9 +688,16 @@ const LabelingContainer = () => {
         mt: true,
         mtr: false,
       });
-      setContext(() => canvas.getContext());
+      /* canvas.add(lLine);
+      canvas.add(rLine);
+      canvas.add(tLine);
+      canvas.add(dLine); */
     }
   }, [canvas]);
+
+  useEffect(() => {
+    //console.log("ctx");
+  }, [ctx]);
 
   const setCanvasImage = async () => {
     if (currentDataURL && canvas) {
@@ -754,24 +781,177 @@ const LabelingContainer = () => {
     canvas.renderAll();
   }, [selectObject]); */
 
+  let sX = 0, eX = 0, sY = 0, eY = 0;
+  let lLine = new fabric.Line([0,0,0,0,], {
+    fill: 'red',
+    stroke: 'red',
+    strokeWidth: 2,
+    selectable: false,
+    hasBorders: false,
+    hasControls: false,
+  });
+  let rLine = new fabric.Line([0,0,0,0,], {
+    fill: 'red',
+    stroke: 'red',
+    strokeWidth: 2,
+    selectable: false,
+    hasBorders: false,
+    hasControls: false,
+  });
+  let tLine = new fabric.Line([0,0,0,0,], {
+    fill: 'red',
+    stroke: 'red',
+    strokeWidth: 2,
+    selectable: false,
+    hasBorders: false,
+    hasControls: false,
+  });
+  let dLine = new fabric.Line([0,0,0,0,], {
+    fill: 'red',
+    stroke: 'red',
+    strokeWidth: 2,
+    selectable: false,
+    hasBorders: false,
+    hasControls: false,
+  });
+
+  const handleMouseMove = (options) => {
+    //console.log("over");
+    if(!canvas) return;
+    let pointer = canvas.getPointer(options);
+    eX = canvas.width;
+    eY = canvas.height;
+    lLine.x1 = sX;
+    lLine.y1 = pointer.y;
+    lLine.x2 = pointer.x;
+    lLine.y2 = pointer.y;
+    rLine.x1 = pointer.x;
+    rLine.y1 = pointer.y;
+    rLine.x2 = eX;
+    rLine.y2 = pointer.y;
+
+    tLine.x1 = pointer.x;
+    tLine.y1 = sY;
+    tLine.x2 = pointer.x;
+    tLine.y2 = pointer.y;
+    dLine.x1 = pointer.x;
+    dLine.y1 = pointer.y;
+    dLine.x2 = pointer.x;
+    dLine.y2 = eY
+    /* console.log(lLine);
+    console.log(rLine);
+    console.log(tLine);
+    console.log(dLine); */
+    //
+    canvas.renderAll();
+  };
+
+  useEffect(() => {
+    currentTool.current = selectedTool;
+  }, [selectedTool]);
+
+  const handleCanvasDown = (options) => {
+    switch(currentTool.current) {
+      case "magicwand":
+        break;
+      case "autopoint":
+        handlePointDown(options);
+        break;
+      case "boxing":
+        handleBoxingDown(options);
+        break;
+      case "polyline":
+        handlePolylineDown(options);
+        break;
+      case "polygon":
+        handlePolygonDown(options);
+        break;
+      case "point":
+        handlePointDown(options);
+        break;
+      case "segment":
+        handleSegmentDown(options);
+        break;
+      case "keypoint":
+        handleKeypointDown(options);
+        break;
+    }
+  };
+
+  const handleCanvasMove = (options) => {
+    switch(currentTool.current) {
+      case "magicwand":
+        break;
+      case "autopoint":
+        handlePointMove(options);
+        break;
+      case "boxing":
+        handleBoxingMove(options);
+        break;
+      case "polyline":
+        handlePolylineMove(options);
+        break;
+      case "polygon":
+        handlePolygonMove(options);
+        break;
+      case "point":
+        handlePointMove(options);
+        break;
+      case "segment":
+        handleSegmentMove(options);
+        break;
+      case "keypoint":
+        handleKeypointMove(options);
+        break;
+    }
+  };
+
+  const handleCanvasUp = (options) => {
+    switch(currentTool.current) {
+      case "magicwand":
+        break;
+      case "autopoint":
+        handleAutopointUp(options);
+        break;
+      case "boxing":
+        handleBoxingUp(options);
+        break;
+      case "polyline":
+        handlePolylineUp(options);
+        break;
+      case "polygon":
+        handlePolygonUp(options);
+        break;
+      case "point":
+        handlePointUp(options);
+        break;
+      case "segment":
+        handleSegmentUp(options);
+        break;
+      case "keypoint":
+        handleKeypointUp(options);
+        break;
+    }
+  };
+
   const handleSelectObject = (options) => {
     if(!options.target) return;
     console.log("selcet");
     isSelectObjectOn = true;
     //console.log(options.target.type);
-    setSelectObject(() => options.target);
+    setSelectedObject(() => options.target);
     setObjectType(() => options.target.type);
-    setObjectId(() => options.target.id);
-  }
+    setSelectedObjectId(() => options.target.id);
+  };
 
   const handleDeSelectObject = (options) => {
     if(!options.target) return;
     console.log("deselcet");
     isSelectObjectOn = false;
-    setSelectObject(() => null);
+    setSelectedObject(() => null);
     setObjectType(() => "");
-    setObjectId(() => -1);
-  }
+    setSelectedObjectId(() => -1);
+  };
 
   useEffect(() => {
     document.onkeydown = function (e) {
@@ -782,32 +962,30 @@ const LabelingContainer = () => {
       }
       deleteItem(key);
     };
-  }, [objectId]);
+  }, [selectedObjectId]);
 
   const handleMoveObject = (options) => {
     if(!options.target) return;
-    console.log(options.target);
+    //console.log(options.target);
     if(options.target.type === "rect") {
       setInstanceWidth(() => options.target.width * options.target.scaleX);
       setInstanceHeight(() => options.target.height * options.target.scaleY);
       setPositionX(() => options.target.left);
       setPositionY(() => options.target.top);
-      console.log(options.target);
-      console.log(TagListItem);
-      for (let i = 0; i < TagListItem.length; i++) {
-        let tag = TagListItem[i];
-        console.log(tag);
-        if (tag.id === options.target.id) {
+      /* console.log(options.target);
+      console.log(ObjectListItem); */
+      //
+      
+      
+      console.log(currentObjectItem.current);
+      for (let i = 0; i < currentObjectItem.current.length; i++) {
+        let tag = currentObjectItem.current[i].tag;
+        if (currentObjectItem.current[i].object.id === options.target.id) {
           tag.left =
             options.target.left + options.target.width / 2 - tag.width / 2;
           tag.top =
             options.target.top + options.target.height / 2 - tag.height / 2;
-        }
-      }
-      console.log(AnnotationListItem);
-      for (let j = 0; j < AnnotationListItem.length; j++) {
-        if (AnnotationListItem[j].id === options.target.id) {
-          AnnotationListItem[j].annotation.annotation_data = [
+          currentObjectItem.current[i].annotation.annotation_data = [
             options.target.left,
             options.target.top,
             options.target.width,
@@ -815,6 +993,16 @@ const LabelingContainer = () => {
           ];
         }
       }
+      /* for (let j = 0; j < AnnotationListItem.length; j++) {
+        if (AnnotationListItem[j].id === options.target.id) {
+          ObjectListItem[j].annotation.annotation_data = [
+            options.target.left,
+            options.target.top,
+            options.target.width,
+            options.target.height,
+          ];
+        }
+      } */
       //setDataImage(options.target);
     } else if (options.target.tool === 'keypoint') {
       let p = options.target;
@@ -824,7 +1012,7 @@ const LabelingContainer = () => {
       p.line4 && p.line4.set({ x1: p.left, y1: p.top });
       p.line5 && p.line5.set({ x1: p.left, y1: p.top });
     }
-  }
+  };
 
   const handleScaleObject = (options) => {
     if(!options.target) return;
@@ -845,8 +1033,22 @@ const LabelingContainer = () => {
         scaleX: 1,
         scaleY: 1,
       });
-      console.log(AnnotationListItem);
-      for (let i = 0; i < AnnotationListItem.length; i++) {
+      for (let i = 0; i < currentObjectItem.current.length; i++) {
+        let tag = currentObjectItem.current[i].tag;
+        if (currentObjectItem.current[i].object.id === options.target.id) {
+          tag.left =
+            options.target.left + options.target.width / 2 - tag.width / 2;
+          tag.top =
+            options.target.top + options.target.height / 2 - tag.height / 2;
+          currentObjectItem.current[i].annotation.annotation_data = [
+            coords.left,
+            coords.top,
+            coords.width,
+            coords.height,
+          ];
+        }
+      }
+      /* for (let i = 0; i < AnnotationListItem.length; i++) {
         if (AnnotationListItem[i].id === options.target.id) {
           AnnotationListItem[i].annotation.annotation_data = [
             coords.left,
@@ -856,19 +1058,23 @@ const LabelingContainer = () => {
           ];
           //console.log(this.AnnotationListItem[i]);
         }
-      }
+      } */
     }
     //setDataImage(coords);
     if(canvas) canvas.renderAll();
-  }
+  };
 
   const handleModifiedObject = (options) => {
     if(options.target.type === "polygon") {
-      console.log(AnnotationListItem);
-      for (let j = 0; j < AnnotationListItem.length; j++) {
-        console.log(AnnotationListItem[j].id + ", " + options.target.id);
-        if (AnnotationListItem[j].id === options.target.id) {
-          console.log(AnnotationListItem[j]);
+      for (let i = 0; i < currentObjectItem.current.length; i++) {
+        if (currentObjectItem.current[i].objectId.id === options.target.id) {
+          console.log(currentObjectItem.current[i]);
+          currentObjectItem.current[i].annotation.annotation_data = [
+            options.target.left,
+            options.target.top,
+            options.target.width,
+            options.target.height,
+          ];
           /* AnnotationListItem[j].annotation.annotation_data = [
             options.target.left,
             options.target.top,
@@ -881,17 +1087,17 @@ const LabelingContainer = () => {
   };
 
   useEffect(() => {
-    if(selectObject) {
-      setLabelHeight(() => Math.round(selectObject.height));
-      setLabelPerHeight(() => ((selectObject.height / imgHeight * imgRatio) * 100).toFixed(2));
-      setLabelWidth(() => Math.round(selectObject.width));
-      setLabelPerWidth(() => ((selectObject.width / imgWidth * imgRatio) * 100).toFixed(2));
-      setLabelDiag(() => Math.sqrt(Math.pow(selectObject.width, 2) + Math.pow(selectObject.height, 2)).toFixed(2));
-      setLabelPerDiag(() => ((Math.sqrt(Math.pow(selectObject.width, 2) + Math.pow(selectObject.height, 2)) / Math.sqrt(Math.pow(imgWidth * imgRatio, 2) + Math.pow(imgHeight * imgRatio, 2))) * 100).toFixed(2));
-      setLabelCoordX(() => Math.round(selectObject.left));
-      setLabelCoordY(() => Math.round(selectObject.top));
+    if(selectedObject) {
+      setLabelHeight(() => Math.round(selectedObject.height));
+      setLabelPerHeight(() => ((selectedObject.height / imgHeight * imgRatio) * 100).toFixed(2));
+      setLabelWidth(() => Math.round(selectedObject.width));
+      setLabelPerWidth(() => ((selectedObject.width / imgWidth * imgRatio) * 100).toFixed(2));
+      setLabelDiag(() => Math.sqrt(Math.pow(selectedObject.width, 2) + Math.pow(selectedObject.height, 2)).toFixed(2));
+      setLabelPerDiag(() => ((Math.sqrt(Math.pow(selectedObject.width, 2) + Math.pow(selectedObject.height, 2)) / Math.sqrt(Math.pow(imgWidth * imgRatio, 2) + Math.pow(imgHeight * imgRatio, 2))) * 100).toFixed(2));
+      setLabelCoordX(() => Math.round(selectedObject.left));
+      setLabelCoordY(() => Math.round(selectedObject.top));
     }
-  }, [selectObject]);
+  }, [selectedObject]);
 
   useEffect(() => {
     setLabelHeight(() => Math.round(instanceHeight));
@@ -911,8 +1117,8 @@ const LabelingContainer = () => {
   const handleDownloadCoco = () => {
     if (selectedTask && currentDataURL && canvas) {
       let datas = [];
-      for (let i = 0; i < AnnotationListItem.length; i++) {
-        datas.push(AnnotationListItem[i].annotation);
+      for (let i = 0; i < ObjectListItem.length; i++) {
+        datas.push(ObjectListItem[i].annotation);
       }
       let data = JSON.stringify(datas);
       const a = document.createElement("a");
@@ -1033,8 +1239,9 @@ const LabelingContainer = () => {
         );
         resDelete = res.status;
       }
-      for (let i = 0; i < AnnotationListItem.length; i++) {
-        let data = AnnotationListItem[i].annotation;
+      for (let i = 0; i < ObjectListItem.length; i++) {
+        let data = ObjectListItem[i].annotation;
+        console.log(data);
         if (data.annotation_id) {
           const res = await labelingApi.updateAnnotation(
             {
@@ -1066,9 +1273,9 @@ const LabelingContainer = () => {
     if(!canvas) return;
     console.log("lock-btn");
     for (let i = 0; i < ObjectListItem.length; i++) {
-      if (ObjectListItem[i].id === item) {
-        ObjectListItem[i].selectable =
-          !ObjectListItem[i].selectable;
+      if (ObjectListItem[i].object.id === item) {
+        ObjectListItem[i].object.selectable =
+          !ObjectListItem[i].object.selectable;
           console.log("lock");
         /* if (!ObjectListItem[i].selectable) {
           document.getElementById('lockBtn' + index).classList.add('active');
@@ -1077,17 +1284,17 @@ const LabelingContainer = () => {
             .getElementById('lockBtn' + index)
             .classList.remove('active');
         } */
-        if (!ObjectListItem[i].selectable) {
+        if (!ObjectListItem[i].object.selectable) {
           (document.getElementById('lockBtn' + index) as HTMLImageElement).src = iconLock;
         } else {
           (document.getElementById('lockBtn' + index) as HTMLImageElement).src = iconUnLock;
         }
-        for (let j = 0; j < InstanceListItem.length; j++) {
+        /* for (let j = 0; j < InstanceListItem.length; j++) {
           if (InstanceListItem[j].id === item) {
             InstanceListItem[j].selectable = ObjectListItem[i].selectable;
             console.log(InstanceListItem[j]);
           }
-        }
+        } */
         canvas.discardActiveObject();
         canvas.renderAll();
       }
@@ -1095,9 +1302,9 @@ const LabelingContainer = () => {
   };
   const isVisible = (item: any, index: number) => {
     for (let i = 0; i < ObjectListItem.length; i++) {
-      if (ObjectListItem[i].id === item) {
-        ObjectListItem[i].visible = !ObjectListItem[i].visible;
-        TagListItem[i].visible = ObjectListItem[i].visible && isTagOn;
+      if (ObjectListItem[i].object.id === item) {
+        ObjectListItem[i].object.visible = !ObjectListItem[i].object.visible;
+        ObjectListItem[i].tag.visible = ObjectListItem[i].object.visible && isTagOn;
         /* if (!ObjectListItem[i].visible) {
           document
             .getElementById('visibleBtn' + index)
@@ -1107,16 +1314,16 @@ const LabelingContainer = () => {
             .getElementById('visibleBtn' + index)
             .classList.remove('active');
         } */
-        if (ObjectListItem[i].visible) {
+        if (ObjectListItem[i].object.visible) {
           (document.getElementById('visibleBtn' + index) as HTMLImageElement).src = iconVisible;
         } else {
           (document.getElementById('visibleBtn' + index) as HTMLImageElement).src = iconInvisible;
         }
-        for (let j = 0; j < InstanceListItem.length; j++) {
+        /* for (let j = 0; j < InstanceListItem.length; j++) {
           if (InstanceListItem[j].id === item) {
             InstanceListItem[j].visible = ObjectListItem[i].visible;
           }
-        }
+        } */
         canvas.discardActiveObject();
         canvas.renderAll();
       }
@@ -1132,20 +1339,20 @@ const LabelingContainer = () => {
     if(!canvas) return;
     let check = /^[0-9]+$/;
     if (key === 'Delete') {
-      for (let i = 0; i < TagListItem.length; i++) {
+      /* for (let i = 0; i < TagListItem.length; i++) {
         let tag = TagListItem[i];
-        if (tag.id === objectId) {
+        if (tag.id === selectedObjectId) {
           canvas.remove(tag);
           TagListItem.splice(i, 1);
         }
-      }
-      for (let i = 0; i < InstanceListItem.length; i++) {
-        if (InstanceListItem[i].id === objectId) {
+      } */
+      /* for (let i = 0; i < InstanceListItem.length; i++) {
+        if (InstanceListItem[i].id === selectedObjectId) {
           InstanceListItem.splice(i, 1);
         }
-      }
-      for (let i = 0; i < AnnotationListItem.length; i++) {
-        if (AnnotationListItem[i].id === objectId) {
+      } */
+      /* for (let i = 0; i < AnnotationListItem.length; i++) {
+        if (AnnotationListItem[i].id === selectedObjectId) {
           if (AnnotationListItem[i].annotation.annotation_id) {
             DeleteIDList.push(
               AnnotationListItem[i].annotation.annotation_id,
@@ -1156,17 +1363,23 @@ const LabelingContainer = () => {
           }
           AnnotationListItem.splice(i, 1);
         }
-      }
+      } */
       for (let i = 0; i < ObjectListItem.length; i++) {
-        if (ObjectListItem[i].id === objectId) {
-          canvas.remove(selectObject);
+        if (ObjectListItem[i].object.id === selectedObjectId) {
+          if (ObjectListItem[i].annotation.annotation_id) {
+            DeleteIDList.push(
+              ObjectListItem[i].annotation.annotation_id,
+            );
+          }
+          canvas.remove(ObjectListItem[i].tag)
+          canvas.remove(selectedObject);
           ObjectListItem.splice(i, 1);
         }
       }
       //isClassSettingOn = false;
       setIsClassOnOff(() => false);
     } else if (check.test(key)) {
-      for (let i = 0; i < TagListItem.length; i++) {
+      /* for (let i = 0; i < TagListItem.length; i++) {
         let tag = TagListItem[i];
         if (tag.id === key) {
           canvas.remove(tag);
@@ -1187,10 +1400,16 @@ const LabelingContainer = () => {
           }
           AnnotationListItem.splice(i, 1);
         }
-      }
+      } */
       for (let i = 0; i < ObjectListItem.length; i++) {
-        if (ObjectListItem[i].id === key) {
-          canvas.remove(ObjectListItem[i]);
+        if (ObjectListItem[i].object.id === key) {
+          if (ObjectListItem[i].annotation.annotation_id) {
+            DeleteIDList.push(
+              ObjectListItem[i].annotation.annotation_id,
+            );
+          }
+          canvas.remove(ObjectListItem[i].tag)
+          canvas.remove(ObjectListItem[i].object);
           ObjectListItem.splice(i, 1);
         }
       }
@@ -1249,6 +1468,11 @@ const LabelingContainer = () => {
 
   //*************** Main function **********************/
 
+  const currentObjectId = useRef(objectId);
+  useEffect(() => {
+    currentObjectId.current = objectId;
+  }, [objectId]);
+
   const resetAutoTools = () => {
     setIsODOnOff(() => false);
     setIsISOnOff(() => false);
@@ -1275,21 +1499,21 @@ const LabelingContainer = () => {
   }
   const clearDatas = () => {
     setObjectListItem(() => []);
-    setInstanceListItem(() => []);
+    /* setInstanceListItem(() => []);
     setAnnotationListItem(() => []);
-    setTagListItem(() => []);
+    setTagListItem(() => []); */
     setDeleteIDList(() => []);
     setInstanceClass(() => "");
     setInstanceGender(() => "");
     setInstanceAge(() => "");
-    objId = 0;
+    setObjectId(() => 0);
   }
   const clearAutoLabeling = (tool: string) => {
     for (let i = 0; i < ObjectListItem.length; i++) {
       if (ObjectListItem[i].tool === tool) {
-        let id = ObjectListItem[i].id;
+        let id = ObjectListItem[i].object.id;
 
-        for (let j = 0; j < TagListItem.length; j++) {
+        /* for (let j = 0; j < TagListItem.length; j++) {
           let tag = TagListItem[j];
           if (tag.id === id) {
             canvas.remove(tag);
@@ -1315,9 +1539,14 @@ const LabelingContainer = () => {
             }
             AnnotationListItem.splice(l, 1);
           }
+        } */
+        if (ObjectListItem[i].annotation.annotation_id) {
+          DeleteIDList.push(
+            ObjectListItem[i].annotation.annotation_id,
+          );
         }
-
-        canvas.remove(ObjectListItem[i]);
+        canvas.remove(ObjectListItem[i].tag);
+        canvas.remove(ObjectListItem[i].object);
         //this.ObjectListItem.splice(i, 1);
       }
     }
@@ -1327,6 +1556,36 @@ const LabelingContainer = () => {
       }
     }
   }
+
+  const setObjectItem = (object: fabric.Object, tagText: fabric.Text, annotation: any) => {
+    let optionTag = {
+      //id: objectId,
+      fill: '#ffffff',
+      //textBackgroundColor: 'grey',
+      fontFamily: 'Comic Sans',
+      fontSize: 10 * 1, //(1 / imgRatio),
+      visible: isTag.current,
+      selectable: false,
+    };
+    let tag = new fabric.Text('인간 ' + currentObjectId.current, optionTag);
+    tag.set('top', object.top + object.height / 2 - tag.height / 2);
+    tag.set('left', object.left + object.width / 2 - tag.width / 2);
+    canvas.add(tag);
+
+    let ObjectItem = {
+      object: object, 
+      tag: tag,
+      className: 'person',
+      attrs: [],
+      annotation: annotation,
+    };
+    setObjectListItem(ObjectListItem => [...ObjectListItem, ObjectItem]);
+  };
+
+  useEffect(() => {
+    //console.log(ObjectListItem);
+    currentObjectItem.current = ObjectListItem;
+  }, [ObjectListItem]);
 
   //**! download */
   const checkIsDownload = () => {
@@ -1413,19 +1672,19 @@ const LabelingContainer = () => {
     setIsTagOnOff((prev) => !prev);
   };
   useEffect(() => {
+    isTag.current = isTagOn;
     if (!isTagOn) {
       /*let items = this.fCanvas.getObjects();
       for (let i = 0; i < items.length; i++) {
         this.fCanvas.remove(this.TagListItem[i]);
       }*/
-      for (let i = 0; i < TagListItem.length; i++) {
-        TagListItem[i].visible = false;
+      for (let i = 0; i < ObjectListItem.length; i++) {
+        ObjectListItem[i].tag.visible = false;
       }
     } else {
-      console.log(TagListItem);
-      for (let i = 0; i < TagListItem.length; i++) {
+      for (let i = 0; i < ObjectListItem.length; i++) {
         //this.fCanvas.add(this.TagListItem[i]);
-        TagListItem[i].visible = true;
+        ObjectListItem[i].tag.visible = true;
       }
     }
     if(canvas)
@@ -1444,16 +1703,11 @@ const LabelingContainer = () => {
     // Todo: Instance 클래스 팝업
     console.log("instance class");
     setIsClassOnOff((prev) => !prev);
-    let id = InstanceListItem[index].id;
-    let object = null;
-    for(let i = 0; i > ObjectListItem.length; i++){
-      if(ObjectListItem[i].id === id){
-        object = ObjectListItem[i];
-      }
-    }
+    let id = ObjectListItem[index].object.id;
+    let object = ObjectListItem[index];
     if(object) {
-      setSelectObject(() => object);
-      setObjectId(() => object.id);
+      setSelectedObject(() => object);
+      setSelectedObjectId(() => object.id);
     }
   };
 
@@ -1564,6 +1818,15 @@ const LabelingContainer = () => {
     setIsSmartpenOnOff(false);
   };
 
+  useEffect(() => {
+    if(isSmartpenOn && canvas) {
+      setSelectedTool(() => "magicwand");
+      canvas.defaultCursor = "crosshair";
+      canvas.hoverCursor = "crosshair";
+    } else if(!isSmartpenOn && canvas) {
+    }
+  }, [isSmartpenOn]);
+
   //**! autopoint */
   const checkIsAutopoint = () => {
     resetTools();
@@ -1574,15 +1837,10 @@ const LabelingContainer = () => {
   };
   useEffect(() => {
     if(isAutopointOn && canvas) {
+      setSelectedTool(() => "autopoint");
       canvas.defaultCursor = "crosshair";
       canvas.hoverCursor = "crosshair";
-      canvas.on("mouse:down", handlePointDown);
-      canvas.on("mouse:move", handlePointMove);
-      canvas.on("mouse:up", handleAutopointUp);
     } else if(!isAutopointOn && canvas) {
-      canvas.off("mouse:down");
-      canvas.off("mouse:move");
-      canvas.off("mouse:up");
     }
   }, [isAutopointOn]);
   const handleAutopointUp = (options: any) => {
@@ -1600,18 +1858,10 @@ const LabelingContainer = () => {
   };
   useEffect(() => {
     if(isBoxingOn && canvas) {
-      console.log("boxSet");
+      setSelectedTool(() => "boxing");
       canvas.defaultCursor = "crosshair";
       canvas.hoverCursor = "crosshair";
-      canvas.on("mouse:down", handleBoxingDown);
-      canvas.on("mouse:move", handleBoxingMove);
-      canvas.on("mouse:up", handleBoxingUp);
-      console.log(canvas);
     } else if(!isBoxingOn && canvas) {
-      canvas.off("mouse:down", handleBoxingDown);
-      canvas.off("mouse:move");
-      canvas.off("mouse:up");
-      console.log(canvas);
     }
   }, [isBoxingOn]);
   let tempRect: fabric.Rect = null;
@@ -1626,12 +1876,13 @@ const LabelingContainer = () => {
       top: pointer.y,
       width: 0,
       height: 0,
-      strokeWidth: 2 * (1 / imgRatio),
+      strokeWidth: 2,  //2 * (1 / imgRatio),
       stroke: 'rgba(0,0,0,0.3)',
-      strokeDashArray: [5 * (1 / imgRatio), 5 * (1 / imgRatio)],
+      strokeDashArray: [5, 5],  //[5 * (1 / imgRatio), 5 * (1 / imgRatio)],
       fill: 'transparent',
     });
     canvas.add(tempRect);
+    canvas.renderAll();
     isDown = true;
   };
   const handleBoxingMove = (options: any) => {
@@ -1653,7 +1904,7 @@ const LabelingContainer = () => {
         isDown = false;
       }
     } else {
-      setRect();
+      setRect('bbox');
       //this.drawBoxing();
       isDown = false;
     }
@@ -1689,7 +1940,7 @@ const LabelingContainer = () => {
     //this.DragRectListItem.push(rect);
     canvas.renderAll();
   }
-  const setRect = () => {
+  const setRect = (tool: any) => {
     let rTop, rLeft, rBottom, rRight;
     if (startX > endX) {
       rLeft = endX;
@@ -1716,19 +1967,20 @@ const LabelingContainer = () => {
       height: rBottom - rTop,
     };
     //console.log(coordinate);
-    drawBoxing('bbox', coordinate, '#000000', null);
+    drawBoxing(tool, coordinate, '#000000', null);
   }
   const drawBoxing = (tool, coordinate, color, aId) => {
     canvas.remove(tempRect);
+    console.log(tool);
     let optionRect = {
-      id: objId,
+      id: currentObjectId.current,
       tool: tool,
       color: color,
       left: coordinate.left,
       top: coordinate.top,
       width: coordinate.width,
       height: coordinate.height,
-      strokeWidth: 2 * (1 / imgRatio),
+      strokeWidth: 2, //2 * (1 / imgRatio),
       //stroke: 'rgba(0,0,0,0.5)',
       stroke: color,
       //strokeOpacity: '.5',
@@ -1745,24 +1997,22 @@ const LabelingContainer = () => {
     rect.on('deselected', handleDeSelectObject);
 
     let optionTag = {
-      id: objId,
+      //id: currentObjectId.current,
       fill: '#ffffff',
       textBackgroundColor: color,
       fontFamily: 'Comic Sans',
-      fontSize: 10 * (1 / imgRatio),
+      fontSize: 10, // * (1 / imgRatio),
       selectable: false,
-      visible: isTagOn,
+      visible: isTag.current,
     };
-    console.log(isTagOn);
-    let tag = new fabric.Text('human ' + objId, optionTag);
+    /* let tag = new fabric.Text('인간 ' + currentObjectId.current, optionTag);
     tag.set('top', rect.top + rect.height / 2 - tag.height / 2);
-    tag.set('left', rect.left + rect.width / 2 - tag.width / 2);
-    ObjectListItem.push(rect);
-    TagListItem.push(tag);
+    tag.set('left', rect.left + rect.width / 2 - tag.width / 2); */
+    //TagListItem.push(tag);
     
     //this.fCanvas.setActiveObject(rect);
-    InstanceListItem.push({
-      id: objId, //category id
+    /* InstanceListItem.push({
+      id: currentObjectId.current, //category id
       tool: tool,
       cId: 0, //AnnotationListItem id
       className: 'human',
@@ -1771,7 +2021,7 @@ const LabelingContainer = () => {
       attrs: [],
       selectable: true,
       visible: true,
-    });
+    }); */
     //console.log(this.InstanceListItem);
     /* AnnotationListItem.push({
       id: objId,
@@ -1788,7 +2038,7 @@ const LabelingContainer = () => {
       },
     }); */
     let annotation = {
-      id: objId,
+      //id: currentObjectId.current,
       annotation: {
         annotation_id: aId,
         annotation_type: {
@@ -1801,24 +2051,39 @@ const LabelingContainer = () => {
         annotation_data: [rect.left, rect.top, rect.width, rect.height],
       },
     };
-    console.log(annotation);
-    //setAnnotationListItem(AnnotationListItem => [...AnnotationListItem, annotation]);
-    AnnotationListItem.push(annotation);
-    console.log(AnnotationListItem);
+    //console.log(annotation);
+    /* ObjectListItem.push({
+      object: rect, 
+      tag: tag,
+      className: 'person',
+      attrs: [],
+    }); */
+    /* let ObjectItem = {
+      object: rect, 
+      tag: tag,
+      className: 'person',
+      attrs: [],
+      annotation: annotation,
+    }; */
+    /* console.log(ObjectListItem);
+    setObjectListItem(ObjectListItem => [...ObjectListItem, ObjectItem]); */
+    setObjectItem(rect, undefined, annotation);
+    //AnnotationListItem.push(annotation);
+    //console.log(AnnotationListItem);
     //this.setDataImage();
-    objId++;
+    setObjectId((prev) => prev + 1);
     canvas.add(rect);
-    canvas.add(tag);
-    //canvas.renderAll();
+    //canvas.add(tag);
+    canvas.renderAll();
     canvas.requestRenderAll();
   }
 
-  useEffect(() => {
+  /* useEffect(() => {
     if(!canvas) return;
     console.log("anno");
     console.log(AnnotationListItem);
     canvas.renderAll();
-  }, [AnnotationListItem]);
+  }, [AnnotationListItem]); */
 
   //**! polyline */
   const checkIsPolyline = () => {
@@ -1827,16 +2092,10 @@ const LabelingContainer = () => {
   };
   useEffect(() => {
     if(isPolylineOn && canvas) {
+      setSelectedTool(() => "polyline");
       canvas.defaultCursor = "crosshair";
       canvas.hoverCursor = "crosshair";
-      canvas.on("mouse:down", handlePolylineDown);
-      canvas.on("mouse:move", handlePolylineMove);
-      canvas.on("mouse:up", handlePolylineUp);
-      console.log(canvas);
     } else if(!isPolylineOn && canvas) {
-      canvas.off("mouse:down");
-      canvas.off("mouse:move");
-      canvas.off("mouse:up");
     }
   }, [isPolylineOn]);
   const handlePolylineDown = (options: any) => {
@@ -1890,15 +2149,10 @@ const LabelingContainer = () => {
   };
   useEffect(() => {
     if(isPolygonOn && canvas) {
+      setSelectedTool(() => "polygon");
       canvas.defaultCursor = "crosshair";
       canvas.hoverCursor = "crosshair";
-      canvas.on("mouse:down", handlePolygonDown);
-      canvas.on("mouse:move", handlePolygonMove);
-      canvas.on("mouse:up", handlePolygonUp);
     } else if(!isPolygonOn && canvas) {
-      canvas.off("mouse:down");
-      canvas.off("mouse:move");
-      canvas.off("mouse:up");
     }
   }, [isPolygonOn]);
   const handlePolygonDown = (options: any) => {
@@ -1951,15 +2205,10 @@ const LabelingContainer = () => {
   };
   useEffect(() => {
     if(isPointOn && canvas) {
+      setSelectedTool(() => "point");
       canvas.defaultCursor = "crosshair";
       canvas.hoverCursor = "crosshair";
-      canvas.on("mouse:down", handlePointDown);
-      canvas.on("mouse:move", handlePointMove);
-      canvas.on("mouse:up", handlePointUp);
     } else if(!isPointOn && canvas) {
-      canvas.off("mouse:down");
-      canvas.off("mouse:move");
-      canvas.off("mouse:up");
     }
   }, [isPointOn]);
   const handlePointDown = (options: any) => {
@@ -1982,10 +2231,11 @@ const LabelingContainer = () => {
   const drawPoints = (point: any, type: string) => {
     if(type === "point") {
       let optionPoint = {
-        id: objId,
-        radius: 4 / imgRatio,
+        id: currentObjectId.current,
+        tool: type,
+        radius: 4,  //4 / imgRatio,
         stroke: 'black',
-        strokeWidth: 1 / imgRatio,
+        strokeWidth: 1, //1 / imgRatio,
         color: '#ff0000',
         fill: '#ff0000',
         //startAngle: 0,
@@ -1994,7 +2244,7 @@ const LabelingContainer = () => {
         top: point.y,
         hasBorders: false,
         hasControls: false,
-        cornerSize: 5 / imgRatio,
+        cornerSize: 5,  //5 / imgRatio,
         originX: 'center',
         originY: 'center',
         hoverCursor: 'pointer',
@@ -2004,10 +2254,10 @@ const LabelingContainer = () => {
       boxingPoint.on('selected', handleSelectObject);
       boxingPoint.on('deselected', handleDeSelectObject);
       canvas.add(boxingPoint);
-      ObjectListItem.push(boxingPoint);
+      //ObjectListItem.push(boxingPoint);
       //this.fCanvas.setActiveObject(polyItem);
-      InstanceListItem.push({
-        id: objId, //category id
+      /* InstanceListItem.push({
+        id: currentObjectId.current, //category id
         tool: 'point',
         cId: 0, //AnnotationListItem id
         className: 'human',
@@ -2016,9 +2266,9 @@ const LabelingContainer = () => {
         attrs: [],
         selectable: true,
         visible: true,
-      });
+      }); */
       //console.log(this.InstanceListItem);
-      AnnotationListItem.push({
+      /* AnnotationListItem.push({
         id: objId,
         annotation: {
           annotation_type: {
@@ -2030,15 +2280,32 @@ const LabelingContainer = () => {
           },
           annotation_data: [point.x, point.y],
         },
-      });
-      objId++;
+      }); */
+      let annotation = {
+        //id: currentObjectId.current,
+        annotation: {
+          annotation_type: {
+            annotation_type_id: 5,
+          },
+          annotation_category: {
+            annotation_category_id: 0,
+            annotation_category_attributes: [],
+          },
+          annotation_data: [point.x, point.y],
+        },
+      };
+      //setAnnotationListItem(AnnotationListItem => [...AnnotationListItem, annotation]);
+      setObjectItem(boxingPoint, undefined, annotation);
+      setObjectId((prev) => prev + 1);
+      canvas.renderAll();
     //} else if (type === "autopoint") {
     } else {
       let optionAutopoint = {
-        id: objId,
-        radius: 5 / imgRatio,
+        //id: currentObjectId.current,
+        tool: type,
+        radius: 5,  //5 / imgRatio,
         stroke: 'black',
-        strokeWidth: 1 / imgRatio,
+        strokeWidth: 1, //1 / imgRatio,
         color: '#999999',
         fill: '#ffcc00',
         //startAngle: 0,
@@ -2047,7 +2314,7 @@ const LabelingContainer = () => {
         top: point.y,
         hasBorders: false,
         hasControls: false,
-        cornerSize: 5 / imgRatio,
+        cornerSize: 5,  //5 / imgRatio,
         originX: 'center',
         originY: 'center',
         hoverCursor: 'pointer',
@@ -2067,7 +2334,7 @@ const LabelingContainer = () => {
         //console.log(sPoint);
         canvas.remove(ePoint);
         canvas.remove(sPoint);
-        setRect();
+        setRect(type);
       }
     } 
   }
@@ -2081,6 +2348,15 @@ const LabelingContainer = () => {
     setIsBrushOnOff(false);
   };
 
+  useEffect(() => {
+    if(isBrushOn && canvas) {
+      setSelectedTool(() => "brush");
+      canvas.defaultCursor = "crosshair";
+      canvas.hoverCursor = "crosshair";
+    } else if(!isBrushOn && canvas) {
+    }
+  }, [isBrushOn]);
+
   //**! 3Dcube */
   const checkIs3Dcube = () => {
     resetTools();
@@ -2090,6 +2366,15 @@ const LabelingContainer = () => {
     setIs3DcubeOnOff(false);
   };
 
+  useEffect(() => {
+    if(is3DcubeOn && canvas) {
+      setSelectedTool(() => "3Dcube");
+      canvas.defaultCursor = "crosshair";
+      canvas.hoverCursor = "crosshair";
+    } else if(!is3DcubeOn && canvas) {
+    }
+  }, [is3DcubeOn]);
+
   //**! segment */
   const checkIsSegment = () => {
     resetTools();
@@ -2097,15 +2382,10 @@ const LabelingContainer = () => {
   };
   useEffect(() => {
     if(isSegmentOn && canvas) {
+      setSelectedTool(() => "segment");
       canvas.defaultCursor = "crosshair";
       canvas.hoverCursor = "crosshair";
-      canvas.on("mouse:down", handleSegmentDown);
-      canvas.on("mouse:move", handleSegmentMove);
-      canvas.on("mouse:up", handleSegmentUp);
     } else if(!isSegmentOn && canvas) {
-      canvas.off("mouse:down");
-      canvas.off("mouse:move");
-      canvas.off("mouse:up");
     }
   }, [isSegmentOn]);
   const handleSegmentDown = (options: any) => {
@@ -2160,15 +2440,10 @@ const LabelingContainer = () => {
   };
   useEffect(() => {
     if(isKeypointOn && canvas) {
+      setSelectedTool(() => "keypoint");
       canvas.defaultCursor = "crosshair";
       canvas.hoverCursor = "crosshair";
-      canvas.on("mouse:down", handleKeypointDown);
-      canvas.on("mouse:move", handleKeypointMove);
-      canvas.on("mouse:up", handleKeypointUp);
     } else if(!isKeypointOn && canvas) {
-      canvas.off("mouse:down");
-      canvas.off("mouse:move");
-      canvas.off("mouse:up");
     }
   }, [isKeypointOn]);
 
@@ -2182,9 +2457,9 @@ const LabelingContainer = () => {
       top: pointer.y,
       width: 0,
       height: 0,
-      strokeWidth: 2 * (1 / imgRatio),
+      strokeWidth: 2 * 1, //(1 / imgRatio),
       stroke: 'rgba(0,0,0,0.3)',
-      strokeDashArray: [5 * (1 / imgRatio), 5 * (1 / imgRatio)],
+      strokeDashArray: [5, 5],  //[5 * (1 / imgRatio), 5 * (1 / imgRatio)],
       fill: 'transparent',
     });
     canvas.add(tempRect);
@@ -2501,8 +2776,8 @@ const LabelingContainer = () => {
         rtoePoint,
       );
 
-      InstanceListItem.push({
-        id: objId, //category id
+      /* InstanceListItem.push({
+        id: currentObjectId.current, //category id
         tool: 'keypoint',
         cId: 0, //AnnotationListItem id
         className: 'human',
@@ -2511,7 +2786,7 @@ const LabelingContainer = () => {
         attrs: [],
         selectable: true,
         visible: true,
-      });
+      }); */
 
       let cData = [
         headPoint.left,
@@ -2567,7 +2842,7 @@ const LabelingContainer = () => {
         2,
       ];
       console.log(cData);
-      AnnotationListItem.push({
+      /* AnnotationListItem.push({
         id: objId,
         annotation: {
           annotation_id: aId,
@@ -2581,8 +2856,25 @@ const LabelingContainer = () => {
           },
           annotation_data: cData,
         },
-      });
-      objId++;
+      }); */
+      /* let annotation = {
+        id: currentObjectId.current,
+        annotation: {
+          annotation_id: aId,
+          annotation_type: {
+            annotation_type_id: 10,
+            annotation_type_name: 'keypoint',
+          },
+          annotation_category: {
+            annotation_category_id: 0,
+            annotation_category_attributes: [],
+          },
+          annotation_data: cData,
+        },
+      };
+      setAnnotationListItem(AnnotationListItem => [...AnnotationListItem, annotation]); */
+      setObjectId((prev) => prev + 1);
+      canvas.renderAll();
     }
   };
 
@@ -2613,13 +2905,13 @@ const LabelingContainer = () => {
       fill = color + "4D";
     }
     let option = {
-      id: objId,
+      id: currentObjectId.current,
       tool: tool,
       type: type,
       color: color,
       fill: fill,
       selectable: true,
-      strokeWidth: 2 * (1 / imgRatio),
+      strokeWidth: 2 * 1, //(1 / imgRatio),
       //strokeLinejoin: 'round',
       //stroke: 'rgba(0,0,0,0.5)',
       stroke: color,
@@ -2633,28 +2925,28 @@ const LabelingContainer = () => {
     if (type === "polyline") {
       polyItem = new fabric.Polyline(coordinate, option);
     }
-    let optionTag = {
-      id: objId,
+    /* let optionTag = {
+      //id: objectId,
       fill: '#ffffff',
       //textBackgroundColor: 'grey',
       fontFamily: 'Comic Sans',
-      fontSize: 10 * (1 / imgRatio),
-      visible: isTagOn,
+      fontSize: 10 * 1, //(1 / imgRatio),
+      visible: isTag.current,
       selectable: false,
     };
-    let tag = new fabric.Text('human ' + objId, optionTag);
+    let tag = new fabric.Text('인간 ' + currentObjectId.current, optionTag);
     tag.set('top', polyItem.top + polyItem.height / 2 - tag.height / 2);
-    tag.set('left', polyItem.left + polyItem.width / 2 - tag.width / 2);
+    tag.set('left', polyItem.left + polyItem.width / 2 - tag.width / 2); */
     canvas.add(polyItem);
-    canvas.add(tag);
+    //canvas.add(tag);
     polyItem.on('selected', handleSelectObject);
     polyItem.on('deselected', handleDeSelectObject);
     //polyItem.on('modified', modifyObject);
-    ObjectListItem.push(polyItem);
-    TagListItem.push(tag);
+    /* ObjectListItem.push(polyItem);
+    TagListItem.push(tag); */
     //this.fCanvas.setActiveObject(polyItem);
-    InstanceListItem.push({
-      id: objId, //category id
+    /* InstanceListItem.push({
+      id: objectId, //category id
       tool: tool,
       cId: 0, //AnnotationListItem id
       className: 'human',
@@ -2663,7 +2955,7 @@ const LabelingContainer = () => {
       attrs: [],
       selectable: true,
       visible: true,
-    });
+    }); */
     //console.log(this.InstanceListItem);
     //console.log(coordinate);
     let cData = [];
@@ -2672,7 +2964,7 @@ const LabelingContainer = () => {
       cData.push(coordinate[i].y);
     }
     //console.log(cData);
-    AnnotationListItem.push({
+    /* AnnotationListItem.push({
       id: objId,
       annotation: {
         annotation_id: aId,
@@ -2686,18 +2978,36 @@ const LabelingContainer = () => {
         },
         annotation_data: cData,
       },
-    });
+    }); */
+    let annotation = {
+      //id: objectId,
+      annotation: {
+        annotation_id: aId,
+        annotation_type: {
+          annotation_type_id: type_id,
+          annotation_type_name: type,
+        },
+        annotation_category: {
+          annotation_category_id: 0,
+          annotation_category_attributes: [],
+        },
+        annotation_data: cData,
+      },
+    };
+    /* setAnnotationListItem(AnnotationListItem => [...AnnotationListItem, annotation]); */
+    setObjectItem(polyItem, undefined, annotation);
     if (type === 'polygon' || type === 'segment' || type === 'polyline') {
       editPolygon(polyItem);
     }
-    objId++;
+    setObjectId((prev) => prev + 1);
+    canvas.renderAll();
   };
   const addPoint = (options: any, type: string) => {
     if(!canvas) return;
     let pointer = canvas.getPointer(options);
     const pointOption = {
       id: new Date().getTime(),
-      radius: 5 * (1 / imgRatio),
+      radius: 5 * 1,  //(1 / imgRatio),
       fill: '#ffffff',
       stroke: '#333333',
       strokeWidth: 0.5,
@@ -2737,7 +3047,6 @@ const LabelingContainer = () => {
     //line.class = 'line';
     console.log(type);
     if(type !== "polyline") {
-      console.log("!line");
       if (activeShape) {
         const pos = canvas.getPointer(options.e);
         const points = activeShape.get('points');
@@ -2788,6 +3097,7 @@ const LabelingContainer = () => {
 
     canvas.add(line);
     canvas.add(point);
+    console.log(canvas);
   };
   const generatePolygon = (pointArray: any, type: string, color: string) => {
     if(!canvas) return;
@@ -2996,6 +3306,8 @@ const LabelingContainer = () => {
           ),
           actionName: 'modifyPolygon',
           pointIndex: index,
+          x: point.x,
+          y: point.y,
         });
         //console.log(index);
         return acc;
@@ -3466,7 +3778,7 @@ const LabelingContainer = () => {
         labelPerWidth={labelPerWidth} 
         labelPerHeight={labelPerHeight} 
         labelPerDiag={labelPerDiag}      
-        InstanceListItem={InstanceListItem}
+        ObjectListItem={ObjectListItem}
         isAutoLabelingOn={isAutoLabelingOn}
         objectType={objectType}
         refTools={refTools}
