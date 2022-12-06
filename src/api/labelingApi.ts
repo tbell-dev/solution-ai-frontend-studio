@@ -28,10 +28,10 @@ export default {
     callApi("get", "/ai/autolabeling", null, undefined, param),
   getSES: (param: any) =>
     callApi("get", "/ai/autolabeling", null, undefined, param),
-  deleteAnnotation: (param: any) =>
-    callApi("post", "/task/annotation/delete", null, undefined, param, undefined),
-  updateAnnotation: (param: any, payload: any) =>
-    callApi("post", "/task/annotation/update", payload, undefined, param, undefined),
-  createAnnotation: (param: any, payload: any) =>
-    callApi("post", "/task/annotation/create", payload, undefined, param, undefined),
+  deleteAnnotation: (param: any, jwt?: string) =>
+    callApi("post", "/task/annotation/delete", null, jwt, param, undefined),
+  updateAnnotation: (param: any, payload: any, jwt?: string) =>
+    callApi("post", "/task/annotation/update", payload, jwt, param, undefined),
+  createAnnotation: (param: any, payload: any, jwt?: string) =>
+    callApi("post", "/task/annotation/create", payload, jwt, param, undefined),
 };

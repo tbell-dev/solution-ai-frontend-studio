@@ -217,6 +217,8 @@ const LabelingContainer = () => {
 
   const [isKeypointOn, setIsKeypointOnOff] = useState<boolean>(false);
 
+  const [isAutoLabeling, setIsAutoLabeling] = useState<boolean>(false);
+
   const refTools = useRef<any>(undefined);
   const refTop = useRef<any>(undefined);
   const refBottom = useRef<any>(undefined);
@@ -347,6 +349,7 @@ const LabelingContainer = () => {
     const res = await labelingApi.getOD(param);
     if (res && res.status === 200) {
       if (res.data.length > 0) {
+        let iId = currentObjectId.current;
         for (let i = 0; i < res.data.length; i++) {
           let item = res.data[i];
           let color = item.annotation_category.annotation_category_color;
@@ -360,8 +363,9 @@ const LabelingContainer = () => {
           setPositionY(() => item.annotation_data[1]);
           setInstanceWidth(() => item.annotation_data[2] - item.annotation_data[0]);
           setInstanceHeight(() => item.annotation_data[3] - item.annotation_data[1]);
-          drawBoxing('OD', coordinate, color, null);
+          drawBoxing('OD', coordinate, color, null, iId++);
         }
+        //setObjectId(() => iId);
       }
     } else {
       // TODO: error handling
@@ -371,6 +375,7 @@ const LabelingContainer = () => {
     const res = await labelingApi.getIS(param);
     if (res && res.status === 200) {
       if (res.data.length > 0) {
+        let iId = currentObjectId.current;
         for (let i = 0; i < res.data.length; i++) {
           let item = res.data[i];
           //let color = item.annotation_category.annotation_category_color;
@@ -389,8 +394,9 @@ const LabelingContainer = () => {
               );
             }
           }
-          drawPolyItem('IS', coordinates, 'polygon', color, null, 0);
+          drawPolyItem('IS', coordinates, 'polygon', color, null, 0, iId++);
         }
+        //setObjectId(() => iId);
       }
     } else {
       // TODO: error handling
@@ -400,6 +406,7 @@ const LabelingContainer = () => {
     const res = await labelingApi.getSES(param);
     if (res && res.status === 200) {
       if (res.data.length > 0) {
+        let iId = currentObjectId.current;
         for (let i = 0; i < res.data.length; i++) {
           let item = res.data[i];
           let color = item.annotation_category.annotation_category_color;
@@ -413,8 +420,9 @@ const LabelingContainer = () => {
             }
           }
           //console.log(item.annotation_type.annotation_type_id);
-          drawPolyItem('SES', coordinates, 'segment', color, null, 0);
+          drawPolyItem('SES', coordinates, 'segment', color, null, 0, iId++);
         }
+        //setObjectId(() => iId);
       }
     } else {
       // TODO: error handling
@@ -722,7 +730,7 @@ const LabelingContainer = () => {
               width: item.annotation_data[2],
               height: item.annotation_data[3],
             };
-            drawBoxing('bbox', coord, '#00ffcc', item.annotation_id);
+            drawBoxing('bbox', coord, '#00ffcc', item.annotation_id, null);
           } else if (
             item.annotation_type.annotation_type_id === 2 ||
             item.annotation_type.annotation_type_id === 3
@@ -732,7 +740,7 @@ const LabelingContainer = () => {
             for (let l = 0; l < items.length; l++) {
               coordinates.push(new fabric.Point(items[l++], items[l]));
             }
-            drawPolyItem(item.annotation_type.annotation_type_name, coordinates, item.annotation_type.annotation_type_name, '#00ffcc', item.annotation_id, item.annotation_type.annotation_type_id);
+            drawPolyItem(item.annotation_type.annotation_type_name, coordinates, item.annotation_type.annotation_type_name, '#00ffcc', item.annotation_id, item.annotation_type.annotation_type_id, null);
           }
         }
       }
@@ -869,6 +877,12 @@ const LabelingContainer = () => {
       case "point":
         handlePointDown(options);
         break;
+      case "brush":
+        //handleBrushDown(options);
+        break;
+      case "3Dcube":
+        //handle3DcubeDown(options);
+        break;
       case "segment":
         handleSegmentDown(options);
         break;
@@ -896,6 +910,12 @@ const LabelingContainer = () => {
         break;
       case "point":
         handlePointMove(options);
+        break;
+      case "brush":
+        //handleBrushMove(options);
+        break;
+      case "3Dcube":
+        //handle3DcubeMove(options);
         break;
       case "segment":
         handleSegmentMove(options);
@@ -925,6 +945,12 @@ const LabelingContainer = () => {
       case "point":
         handlePointUp(options);
         break;
+      case "brush":
+        //handleBrushUp(options);
+        break;
+      case "3Dcube":
+        //handle3DcubeUp(options);
+        break;
       case "segment":
         handleSegmentUp(options);
         break;
@@ -937,6 +963,7 @@ const LabelingContainer = () => {
   const handleSelectObject = (options) => {
     if(!options.target) return;
     console.log("selcet");
+    console.log(currentObjectItem.current);
     isSelectObjectOn = true;
     //console.log(options.target.type);
     setSelectedObject(() => options.target);
@@ -1198,8 +1225,6 @@ const LabelingContainer = () => {
   };
   // ! Save (Update)
   const saveStatus = async (status: number) => {
-    // TODO: 아래처럼 구현하면 업로드는 진행되는데 파일명이 blob.png로 떨어짐 이거는 추후 수정
-    // ! 서버에 상태 및 라벨링 데이터 저장 기능
     if (pId && selectedTask) {
       const save = await saveData();
       if(save) {
@@ -1229,6 +1254,8 @@ const LabelingContainer = () => {
   const saveData = async () => {
     if (pId && selectedTask) {
       let resDelete = 0, resUpdate = 0, resCreate = 0;
+      console.log(DeleteIDList);
+      console.log(ObjectListItem);
       for (let i = 0; i < DeleteIDList.length; i++) {
         const res = await labelingApi.deleteAnnotation(
           {
@@ -1237,6 +1264,7 @@ const LabelingContainer = () => {
             annotation_id: DeleteIDList[i],
           }
         );
+        console.log(res);
         resDelete = res.status;
       }
       for (let i = 0; i < ObjectListItem.length; i++) {
@@ -1471,6 +1499,8 @@ const LabelingContainer = () => {
   const currentObjectId = useRef(objectId);
   useEffect(() => {
     currentObjectId.current = objectId;
+    console.log(objectId);
+    //console.log(currentObjectId.current);
   }, [objectId]);
 
   const resetAutoTools = () => {
@@ -1510,7 +1540,7 @@ const LabelingContainer = () => {
   }
   const clearAutoLabeling = (tool: string) => {
     for (let i = 0; i < ObjectListItem.length; i++) {
-      if (ObjectListItem[i].tool === tool) {
+      if (ObjectListItem[i].object.tool === tool) {
         let id = ObjectListItem[i].object.id;
 
         /* for (let j = 0; j < TagListItem.length; j++) {
@@ -1551,7 +1581,7 @@ const LabelingContainer = () => {
       }
     }
     for (let i = 0; i < ObjectListItem.length; i++) {
-      if (ObjectListItem[i].tool === tool) {
+      if (ObjectListItem[i].object.tool === tool) {
         ObjectListItem.splice(i, 1);
       }
     }
@@ -1737,10 +1767,13 @@ const LabelingContainer = () => {
   };
   useEffect(() => {
     setLoading(true);
+    setIsAutoLabeling(true);
     if (isODOn) {
       clearAutoLabeling('OD');
       clearAutoLabeling('IS');
       clearAutoLabeling('SES');
+      setIsISOnOff(() => false);
+      setIsSESOnOff(() => false);
       getOD({
         project_id: pId,
         task_id: selectedTask.taskId,
@@ -1752,7 +1785,10 @@ const LabelingContainer = () => {
       //isClassSettingOn = false;
       setIsClassOnOff(() => false);
     }
-    setLoading(false);
+    setTimeout(() => {
+      setLoading(false);
+      setIsAutoLabeling(false);
+    }, 1500);
   }, [isODOn]);
 
   //**! IS */
@@ -1764,10 +1800,13 @@ const LabelingContainer = () => {
   };
   useEffect(() => {
     setLoading(true);
+    setIsAutoLabeling(true);
     if (isISOn) {
       clearAutoLabeling('OD');
       clearAutoLabeling('IS');
       clearAutoLabeling('SES');
+      setIsODOnOff(() => false);
+      setIsSESOnOff(() => false);
       console.log("IS");
       getIS({
         project_id: pId,
@@ -1779,7 +1818,10 @@ const LabelingContainer = () => {
       //isClassSettingOn = false;
       setIsClassOnOff(() => false);
     }
-    setLoading(false);
+    setTimeout(() => {
+      setLoading(false);
+      setIsAutoLabeling(false);
+    }, 1500);
   }, [isISOn]);
 
   //**! SES */
@@ -1792,10 +1834,13 @@ const LabelingContainer = () => {
   };
   useEffect(() => {
     setLoading(true);
+    setIsAutoLabeling(true);
     if (isSESOn) {
       clearAutoLabeling('OD');
       clearAutoLabeling('IS');
       clearAutoLabeling('SES');
+      setIsODOnOff(() => false);
+      setIsISOnOff(() => false);
       getSES({
         project_id: pId,
         task_id: selectedTask.taskId,
@@ -1806,7 +1851,10 @@ const LabelingContainer = () => {
       //isClassSettingOn = false;
       setIsClassOnOff(() => false);
     }
-    setLoading(false);
+    setTimeout(() => {
+      setLoading(false);
+      setIsAutoLabeling(false);
+    }, 1500);
   }, [isSESOn]);
 
   //**! smartpen */
@@ -1967,13 +2015,16 @@ const LabelingContainer = () => {
       height: rBottom - rTop,
     };
     //console.log(coordinate);
-    drawBoxing(tool, coordinate, '#000000', null);
+    drawBoxing(tool, coordinate, '#000000', null, null);
   }
-  const drawBoxing = (tool, coordinate, color, aId) => {
+  const drawBoxing = (tool, coordinate, color, aId, itemId) => {
     canvas.remove(tempRect);
     console.log(tool);
+    if(!itemId) {
+      itemId = currentObjectId.current;
+    }
     let optionRect = {
-      id: currentObjectId.current,
+      id: itemId,
       tool: tool,
       color: color,
       left: coordinate.left,
@@ -2037,7 +2088,7 @@ const LabelingContainer = () => {
         annotation_data: [rect.left, rect.top, rect.width, rect.height],
       },
     }); */
-    let annotation = {
+    /* let annotation = {
       //id: currentObjectId.current,
       annotation: {
         annotation_id: aId,
@@ -2050,7 +2101,7 @@ const LabelingContainer = () => {
         },
         annotation_data: [rect.left, rect.top, rect.width, rect.height],
       },
-    };
+    }; */
     //console.log(annotation);
     /* ObjectListItem.push({
       object: rect, 
@@ -2067,6 +2118,17 @@ const LabelingContainer = () => {
     }; */
     /* console.log(ObjectListItem);
     setObjectListItem(ObjectListItem => [...ObjectListItem, ObjectItem]); */
+    let annotation = {
+      annotation_id: aId,
+      annotation_type: {
+        annotation_type_id: 1,
+      },
+      annotation_category: {
+        annotation_category_id: 0,
+        annotation_category_attributes: [],
+      },
+      annotation_data: [rect.left, rect.top, rect.width, rect.height],
+    };
     setObjectItem(rect, undefined, annotation);
     //AnnotationListItem.push(annotation);
     //console.log(AnnotationListItem);
@@ -2282,17 +2344,14 @@ const LabelingContainer = () => {
         },
       }); */
       let annotation = {
-        //id: currentObjectId.current,
-        annotation: {
-          annotation_type: {
-            annotation_type_id: 5,
-          },
-          annotation_category: {
-            annotation_category_id: 0,
-            annotation_category_attributes: [],
-          },
-          annotation_data: [point.x, point.y],
+        annotation_type: {
+          annotation_type_id: 5,
         },
+        annotation_category: {
+          annotation_category_id: 0,
+          annotation_category_attributes: [],
+        },
+        annotation_data: [point.x, point.y],
       };
       //setAnnotationListItem(AnnotationListItem => [...AnnotationListItem, annotation]);
       setObjectItem(boxingPoint, undefined, annotation);
@@ -2898,14 +2957,17 @@ const LabelingContainer = () => {
     }
   };
 
-  const drawPolyItem = (tool: any, coordinate: any, type: any, color: any, aId: any, type_id: any) => {
+  const drawPolyItem = (tool: any, coordinate: any, type: any, color: any, aId: any, type_id: any, itemId: number) => {
     if(!canvas) return;
+    if(!itemId) {
+      itemId = currentObjectId.current;
+    }
     let fill = 'transparent';
     if(type === "segment") {
       fill = color + "4D";
     }
     let option = {
-      id: currentObjectId.current,
+      id: itemId,
       tool: tool,
       type: type,
       color: color,
@@ -2980,19 +3042,16 @@ const LabelingContainer = () => {
       },
     }); */
     let annotation = {
-      //id: objectId,
-      annotation: {
-        annotation_id: aId,
-        annotation_type: {
-          annotation_type_id: type_id,
-          annotation_type_name: type,
-        },
-        annotation_category: {
-          annotation_category_id: 0,
-          annotation_category_attributes: [],
-        },
-        annotation_data: cData,
+      annotation_id: aId,
+      annotation_type: {
+        annotation_type_id: type_id,
+        annotation_type_name: type,
       },
+      annotation_category: {
+        annotation_category_id: 0,
+        annotation_category_attributes: [],
+      },
+      annotation_data: cData,
     };
     /* setAnnotationListItem(AnnotationListItem => [...AnnotationListItem, annotation]); */
     setObjectItem(polyItem, undefined, annotation);
@@ -3119,7 +3178,7 @@ const LabelingContainer = () => {
     // remove selected Shape and Line
     canvas.remove(activeShape).remove(activeLine);
 
-    drawPolyItem(type, points, type, color, null, 0);
+    drawPolyItem(type, points, type, color, null, 0, null);
     toggleDrawPolygon(null, "");
   };
   /**
@@ -3803,6 +3862,7 @@ const LabelingContainer = () => {
         handleSetRejectText={handleSetRejectText}
         handleShowRejctHelp={handleShowRejctHelp}
         handleCancelRejectComment={handleCancelRejectComment}
+        isAutoLabeling={isAutoLabeling}
       />
     );
   }

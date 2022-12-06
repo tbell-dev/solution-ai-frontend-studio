@@ -225,6 +225,7 @@ interface ILabelingPresenter {
   onMoveToToolsEnd: () => void;
   onMoveToToolsLeft: () => void;
   onMoveToToolsRight: () => void;
+  isAutoLabeling: boolean;
 }
   
 const StudioWrapper = styled.div`
@@ -811,6 +812,7 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
   refBtnLock,
   refBtnVisible,
   refBtnDelete,
+  isAutoLabeling,
 
   isOpenReject,
   rejectComment,
@@ -986,9 +988,9 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                   </>
                 </Modal>
               </NavButton>
-              {selectedTask &&
+              {selectedTask /* &&
                (selectedTask.taskWorker?.id === currentUser.id ||
-                selectedTask.taskValidator?.id === currentUser.id) ?
+                selectedTask.taskValidator?.id === currentUser.id) */ ?
                 <NavButton style={{ cursor: "pointer" }} onClick={() => saveStatus(2)}>
                   <Icon
                     src={iconSave}
@@ -1400,12 +1402,17 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
               </LeftListArrow>
             </MainLeftWrap>
             <MainCenterWrapper>
+            {loading && isAutoLabeling ? (
+              <SpinnerWrapper>
+                <Spinner speed="0.35s" />
+              </SpinnerWrapper>
+            ) : (<></>)}
               <MainCenterUpper
                 id={"mainCenterUpper"}
                 isFileSelectorOpen={isFileSelectorOpen}
               >
                 {/*//! 아래는 데이터를 서버로부터 받으면 화면 중앙에 뿌려주는 이미지 */}
-                {selectedTask &&
+                {/* {selectedTask &&
                   (currentDataURL ? (
                     <MainImage
                       id={"mainImage"}
@@ -1418,8 +1425,8 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                       src={currentDataURL ? currentDataURL : selectedTask.image}
                     />
                   ) : (
-                    <Spinner />
-                  ))}
+                    <Spinner speed="0.35s" />
+                  ))} */}
                 {/*//! Canvas */}
                 <div>
                   <Canvas
