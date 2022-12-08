@@ -1412,7 +1412,7 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                 isFileSelectorOpen={isFileSelectorOpen}
               >
                 {/*//! 아래는 데이터를 서버로부터 받으면 화면 중앙에 뿌려주는 이미지 */}
-                {/* {selectedTask &&
+                {selectedTask &&
                   (currentDataURL ? (
                     <MainImage
                       id={"mainImage"}
@@ -1426,7 +1426,7 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                     />
                   ) : (
                     <Spinner speed="0.35s" />
-                  ))} */}
+                  ))}
                 {/*//! Canvas */}
                 <div>
                   <Canvas

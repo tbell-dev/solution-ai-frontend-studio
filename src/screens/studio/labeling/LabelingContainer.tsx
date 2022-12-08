@@ -45,8 +45,7 @@ import iconLock from "../../../assets/images/studio/icon/instanceTools/icon-lock
 import iconUnLock from "../../../assets/images/studio/icon/instanceTools/icon-unlock-dark.svg";
 import iconVisible from "../../../assets/images/studio/icon/instanceTools/icon-visible-dark.svg";
 import iconInvisible from "../../../assets/images/studio/icon/instanceTools/icon-invisible-active.svg";
-
-//let fabric = require("fabric.js");
+import MagicWand from "magic-wand-tool";
 
 export const WORKSTATUS_ALL = "전체";
 export const WORKSTATUS_1 = "미작업";
@@ -77,6 +76,13 @@ export interface ICanvasHistory {
   redoStack: string[]; //Redo stack
   locked: boolean; //Determines if the state can currently be saved.
   maxCount: number;
+}
+
+export interface Iimg {
+  width: number;
+  height: number;
+  context: CanvasRenderingContext2D;
+  data?: ImageData;
 }
 
 const LabelingContainer = () => {
@@ -160,6 +166,7 @@ const LabelingContainer = () => {
   const [labelPerHeight, setLabelPerHeight] = useState("");
   const [labelPerDiag, setLabelPerDiag] = useState("");
 
+  const [imgInfo, setimgInfo] = useState<Iimg>();
   const [imgRatio, setimgRatio] = useState(0);
   const [imgWidth, setimgWidth] = useState(0);
   const [imgHeight, setimgHeight] = useState(0);
@@ -861,6 +868,7 @@ const LabelingContainer = () => {
   const handleCanvasDown = (options) => {
     switch(currentTool.current) {
       case "magicwand":
+        handleSmartpenDown(options);
         break;
       case "autopoint":
         handlePointDown(options);
@@ -895,6 +903,7 @@ const LabelingContainer = () => {
   const handleCanvasMove = (options) => {
     switch(currentTool.current) {
       case "magicwand":
+        handleSmartpenMove(options);
         break;
       case "autopoint":
         handlePointMove(options);
@@ -929,6 +938,7 @@ const LabelingContainer = () => {
   const handleCanvasUp = (options) => {
     switch(currentTool.current) {
       case "magicwand":
+        handleSmartpenUp(options);
         break;
       case "autopoint":
         handleAutopointUp(options);
@@ -1613,7 +1623,7 @@ const LabelingContainer = () => {
   };
 
   useEffect(() => {
-    //console.log(ObjectListItem);
+    console.log(ObjectListItem);
     currentObjectItem.current = ObjectListItem;
   }, [ObjectListItem]);
 
@@ -1858,6 +1868,13 @@ const LabelingContainer = () => {
   }, [isSESOn]);
 
   //**! smartpen */
+  const currentImgInfo = useRef(imgInfo);
+
+  useEffect(() => {
+    currentImgInfo.current = imgInfo;
+    //console.log(imgInfo);
+  }, [imgInfo]);
+
   const checkIsSmartpen = () => {
     resetTools();
     setIsSmartpenOnOff(!isSmartpenOn);
@@ -1871,9 +1888,256 @@ const LabelingContainer = () => {
       setSelectedTool(() => "magicwand");
       canvas.defaultCursor = "crosshair";
       canvas.hoverCursor = "crosshair";
+      initSmartpen();
     } else if(!isSmartpenOn && canvas) {
     }
   }, [isSmartpenOn]);
+
+  const handleSmartpenDown = (options: any) => {
+    if(!canvas || isSelectObjectOn) return;
+    console.log(options);
+    let pointer = canvas.getPointer(options);
+    startX = pointer.x;
+    startY = pointer.y;
+    if (options.e.button == 0) {
+      allowDraw = true;
+      addMode = options.e.ctrlKey;
+      downPoint = pointer;
+      downPoint = getMousePosition(options.e);
+      drawMask(downPoint.x, downPoint.y);
+  } else { 
+      allowDraw = false;
+      addMode = false;
+      oldMask = null;
+  }
+  };
+  const handleSmartpenMove = (options: any) => {
+    if(!canvas || !isDown || isSelectObjectOn) return;
+    let pointer = canvas.getPointer(options);
+    let nowX = pointer.x;
+    let nowY = pointer.y;
+
+    if (allowDraw) {
+      var p = pointer;
+      if (p.x != downPoint.x || p.y != downPoint.y) {
+          var dx = p.x - downPoint.x,
+              dy = p.y - downPoint.y,
+              len = Math.sqrt(dx * dx + dy * dy),
+              adx = Math.abs(dx),
+              ady = Math.abs(dy),
+              sign = adx > ady ? dx / adx : dy / ady;
+          sign = sign < 0 ? sign / 5 : sign / 3;
+          var thres = Math.min(Math.max(colorThreshold + Math.floor(sign * len), 1), 255);
+          //var thres = Math.min(colorThreshold + Math.floor(len / 3), 255);
+          if (thres != currentThreshold) {
+              currentThreshold = thres;
+              drawMask(downPoint.x, downPoint.y);
+          }
+      }
+  }
+  };
+  const handleSmartpenUp = (options: any) => {
+    if(!canvas || isSelectObjectOn) return;
+    let pointer = canvas.getPointer(options);
+    endX = pointer.x;
+    endY = pointer.y;
+
+    allowDraw = false;
+    addMode = false;
+    oldMask = null;
+    currentThreshold = colorThreshold;
+  };
+
+  const getMousePosition = (e) => {
+    let p = e.target;  //$(e.target).offset(),
+    console.log(p);
+    console.log(p.offsetLeft);
+    console.log(p.offsetTop);
+    let x = Math.round((e.clientX || e.pageX) - e.offsetX);
+    let y = Math.round((e.clientY || e.pageY) - e.offsetY);
+    return { x: x, y: y };
+  };
+
+  const drawMask= (x: number, y: number) => {
+    console.log(currentImgInfo.current);
+    if (!currentImgInfo.current) return;
+    console.log("mask: " + x + ", " + y);
+    let image = {
+        data: currentImgInfo.current.data.data,
+        width: currentImgInfo.current.width,
+        height: currentImgInfo.current.height,
+        bytes: 4
+    };
+    console.log(image);
+    if (addMode && !oldMask) {
+    	oldMask = mask;
+    }
+    
+    let old = oldMask ? oldMask.data : null;
+    console.log(old);
+    mask = MagicWand.floodFill(image, x, y, currentThreshold, old, true);
+    console.log(mask);
+    if (mask) mask = MagicWand.gaussBlurOnlyBorder(mask, blurRadius, old);
+    
+    if (addMode && oldMask) {
+    	mask = mask ? concatMasks(mask, oldMask) : oldMask;
+    }
+    
+    drawBorder(null);
+  };
+
+  const drawBorder = (noBorder) => {
+    if (!mask) return;
+    console.log("border");
+    let x, y, i, j, k,
+      w = currentImgInfo.current.width,
+      h = currentImgInfo.current.height,
+      ctx = currentImgInfo.current.context,
+      imgData = ctx.createImageData(w, h),
+      res = imgData.data;
+    console.log(imgData);
+    if (!noBorder) cacheInd = MagicWand.getBorderIndices(mask);
+    console.log(cacheInd);
+    //ctx.clearRect(0, 0, w, h);
+  
+    let len = cacheInd.length;
+    for (j = 0; j < len; j++) {
+      i = cacheInd[j];
+      x = i % w; // calc x by index
+      y = (i - x) / w; // calc y by index
+      k = (y * w + x) * 4;
+      if ((x + y + hatchOffset) % (hatchLength * 2) < hatchLength) { // detect hatch color 
+        res[k + 3] = 255; // black, change only alpha
+      } else {
+        res[k] = 255; // white
+        res[k + 1] = 255;
+        res[k + 2] = 255;
+        res[k + 3] = 255;
+      }
+    }
+  
+    ctx.putImageData(imgData, 0, 0);
+  };
+
+  const concatMasks = (mask, old) => {
+    let
+      data1 = old.data,
+      data2 = mask.data,
+      w1 = old.width,
+      w2 = mask.width,
+      b1 = old.bounds,
+      b2 = mask.bounds,
+      b = { // bounds for new mask
+        minX: Math.min(b1.minX, b2.minX),
+        minY: Math.min(b1.minY, b2.minY),
+        maxX: Math.max(b1.maxX, b2.maxX),
+        maxY: Math.max(b1.maxY, b2.maxY)
+      },
+      w = old.width, // size for new mask
+      h = old.height,
+      i, j, k, k1, k2, len;
+  
+    let result = new Uint8Array(w * h);
+  
+    // copy all old mask
+    len = b1.maxX - b1.minX + 1;
+    i = b1.minY * w + b1.minX;
+    k1 = b1.minY * w1 + b1.minX;
+    k2 = b1.maxY * w1 + b1.minX + 1;
+    // walk through rows (Y)
+    for (k = k1; k < k2; k += w1) {
+      result.set(data1.subarray(k, k + len), i); // copy row
+      i += w;
+    }
+  
+    // copy new mask (only "black" pixels)
+    len = b2.maxX - b2.minX + 1;
+    i = b2.minY * w + b2.minX;
+    k1 = b2.minY * w2 + b2.minX;
+    k2 = b2.maxY * w2 + b2.minX + 1;
+    // walk through rows (Y)
+    for (k = k1; k < k2; k += w2) {
+      // walk through cols (X)
+      for (j = 0; j < len; j++) {
+        if (data2[k + j] === 1) result[i + j] = 1;
+      }
+      i += w;
+    }
+  
+    return {
+      data: result,
+      width: w,
+      height: h,
+      bounds: b
+    };
+  };
+
+  let colorThreshold = 50;
+  let blurRadius = 5;
+  let simplifyTolerant = 0;
+  let simplifyCount = 30;
+  let hatchLength = 4;
+  let hatchOffset = 0;
+
+  let cacheInd = null;
+  let mask = null;
+  let oldMask = null;
+  let downPoint = null;
+  let allowDraw = false;
+  let addMode = false;
+  let currentThreshold = colorThreshold;
+
+  const initSmartpen = () => {
+    /* colorThreshold = 50;
+    blurRadius = 5;
+    simplifyTolerant = 0;
+    simplifyCount = 30;
+    hatchLength = 4;
+    hatchOffset = 0;
+
+    imageInfo = null;
+    cacheInd = null;
+    mask = null;
+    oldMask = null;
+    downPoint = null;
+    allowDraw = false;
+    addMode = false;
+    currentThreshold = colorThreshold; */
+    
+    /* document.onkeydown = onKeyDown;
+    document.onkeyup = onKeyUp;
+    
+    showThreshold();
+    setInterval(function () { hatchTick(); }, 300); */
+    /* let imgTempEl = document.getElementById("mainImage");
+    let imageInfo: Iimg = {
+      width: imgTempEl.clientWidth,
+      height: imgTempEl.clientHeight,
+      context: ctx,
+    }; */
+    //let img = new Image();
+    //img.src = currentDataURL;
+
+    let imageInfo: Iimg = {
+      width: imgWidth,
+      height: imgHeight,
+      context: ctx,
+    };
+
+    let imgEl = document.createElement("img");
+    imgEl.src = currentDataURL;
+    //console.log(imgEl);
+
+    let tempCtx = document.createElement("canvas").getContext("2d");
+    tempCtx.canvas.width = imageInfo.width;
+    tempCtx.canvas.height = imageInfo.height;
+    tempCtx.drawImage(imgEl, 0, 0);
+    imageInfo.data = tempCtx.getImageData(0, 0, imageInfo.width, imageInfo.height);
+    setimgInfo(() => imageInfo);
+  };
+
+
+
 
   //**! autopoint */
   const checkIsAutopoint = () => {
