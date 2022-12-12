@@ -21,6 +21,10 @@ import iconToolClass from "../../../assets/images/studio/icon/icon-class-dark.sv
 import iconToolClassSelected from "../../../assets/images/studio/icon/icon-class-selected.svg";
 import iconToolReset from "../../../assets/images/studio/icon/icon-reset-dark.svg";
 import iconToolResetSelected from "../../../assets/images/studio/icon/icon-reset-selected.svg";
+import iconToolHD from "../../../assets/images/studio/icon/icon-HD-dark.svg";
+import iconToolHDworking from "../../../assets/images/studio/icon/icon-HD-working.svg";
+import iconToolHDlearning from "../../../assets/images/studio/icon/icon-HD-learning.svg";
+import iconToolHDActive from "../../../assets/images/studio/icon/icon-HD-active.svg";
 import iconToolOD from "../../../assets/images/studio/icon/icon-OD-dark.svg";
 import iconToolODActive from "../../../assets/images/studio/icon/icon-OD-active.svg";
 import iconToolODSelected from "../../../assets/images/studio/icon/icon-OD-selected.svg";
@@ -78,6 +82,7 @@ import {
   ModalContent,
   ModalHeader,
   ModalFooter,
+  Tooltip,
 } from "@chakra-ui/react";
 import SmallTask from "../../../components/studio/SmallTask";
 import Modal from "../../../components/studio/Modal";
@@ -164,6 +169,7 @@ interface ILabelingPresenter {
   checkIsTag: () => void;
   checkIsClass: () => void;
   checkIsReset: () => void;
+  checkIsHD: () => void;
   checkIsOD: () => void;
   checkIsIS: () => void;
   checkIsSES: () => void;
@@ -189,6 +195,7 @@ interface ILabelingPresenter {
   isTagOn: boolean;
   isClassOn: boolean;
   isResetOn: boolean;
+  isHDOn: boolean;
   isODOn: boolean;
   isISOn: boolean;
   isSESOn: boolean;
@@ -226,6 +233,9 @@ interface ILabelingPresenter {
   onMoveToToolsLeft: () => void;
   onMoveToToolsRight: () => void;
   isAutoLabeling: boolean;
+  isDeleteInstance: boolean;
+  checkIsDeleteInstance: () => void;
+  onCancelDelete: () => void;
 }
   
 const StudioWrapper = styled.div`
@@ -781,6 +791,7 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
   isTagOn,
   isClassOn,
   isResetOn,
+  isHDOn,
   isODOn,
   isISOn,
   isSESOn,
@@ -864,6 +875,7 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
   checkIsTag,
   checkIsClass,
   checkIsReset,
+  checkIsHD,
   checkIsOD,
   checkIsIS,
   checkIsSES,
@@ -883,6 +895,9 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
   onMoveToToolsLeft,
   onMoveToToolsRight,
   setInstanceIcon,
+  isDeleteInstance,
+  checkIsDeleteInstance,
+  onCancelDelete,
 }) => {
   return (
     <>
@@ -1154,246 +1169,289 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                 />
               </LeftListArrow>
               <MainLeft id={"toolsWrap"} ref={refTools}>
-                <LeftItemContainer onClick={checkIsMove} ref={refTop}>
-                  <Icon
-                    src={isMoveOn ? iconToolMoveSelected : iconToolMove}
-                  />
-                  <LeftItemText>이동</LeftItemText>
-                  <AlertModal
-                    isOpen={isMoveOn}
-                    onClose={onCancelMove}
-                    title={"이동"}
-                  >
-                    <>
-                      <p>
-                        {"준비중입니다."}
-                      </p>
-                    </>
-                  </AlertModal>
-                </LeftItemContainer>
-                <LeftItemContainer onClick={checkIsTag}>
-                  <Icon
-                    src={isTagOn ? iconToolTagSelected : iconToolTag}
-                  />
-                  <LeftItemText>태그</LeftItemText>
-                </LeftItemContainer>
-                <LeftItemContainer onClick={checkIsClass}>
-                  <Icon
-                    src={isClassOn ? iconToolClassSelected : iconToolClass}
-                  />
-                  <LeftItemText>클래스</LeftItemText>
-                  {/* <>
-                    <Popup
-                      onClose={onCancelClass}
-                      isOpen={isClassOn}
-                      isCentered
-                      closeOnOverlayClick={false}
-                      closeOnEsc={false}
+                <Tooltip hasArrow label="이동" placement="right">
+                  <LeftItemContainer onClick={checkIsMove} ref={refTop}>
+                    <Icon
+                      src={isMoveOn ? iconToolMoveSelected : iconToolMove}
+                    />
+                    <LeftItemText>이동</LeftItemText>
+                    <AlertModal
+                      isOpen={isMoveOn}
+                      onClose={onCancelMove}
+                      title={"이동"}
                     >
-                      <ModalContent 
-                        bgColor={"#5F6164"}
-                        position={"absolute"} 
-                        top={"20px"} 
-                        left={"120px"}
-                        width={"280px"}
+                      <>
+                        <p>
+                          {"준비중입니다."}
+                        </p>
+                      </>
+                    </AlertModal>
+                  </LeftItemContainer>
+                </Tooltip>
+                <Tooltip hasArrow label="태그" placement="right">
+                  <LeftItemContainer onClick={checkIsTag}>
+                    <Icon
+                      src={isTagOn ? iconToolTagSelected : iconToolTag}
+                    />
+                    <LeftItemText>태그</LeftItemText>
+                  </LeftItemContainer>
+                </Tooltip>
+                <Tooltip hasArrow label="클래스" placement="right">
+                  <LeftItemContainer onClick={checkIsClass}>
+                    <Icon
+                      src={isClassOn ? iconToolClassSelected : iconToolClass}
+                    />
+                    <LeftItemText>클래스</LeftItemText>
+                    {/* <>
+                      <Popup
+                        onClose={onCancelClass}
+                        isOpen={isClassOn}
+                        isCentered
+                        closeOnOverlayClick={false}
+                        closeOnEsc={false}
                       >
-                        <ModalHeader
-                          color={"#E2E4E7"}
-                          lineHeight={"16px"}
-                          fontSize={"xl"}
-                          display={"flex"}
-                          justifyContent={"space-between"}
+                        <ModalContent 
+                          bgColor={"#5F6164"}
+                          position={"absolute"} 
+                          top={"20px"} 
+                          left={"120px"}
+                          width={"280px"}
                         >
-                          {"클래스 설정"}
-                          <Icon
-                            src={iconClose}
-                            style={{ width: 20, height: 20, cursor: "pointer" }}
-                            onClick={onCancelClass}
-                          />
-                        </ModalHeader>
-                        <ModalBody
-                          display={"flex"}
-                          width={"full"}
-                          //py={"12"}
-                          color={"#E2E4E7"}
-                          lineHeight={"16px"}
-                          fontSize={"xl"}
-                          alignItems={"center"}
-                          //justifyContent={"center"}
-                          flexDirection={"column"}
-                        >
-                          <Button 
-                            margin={"0 10px 8px 0"}
-                            height={"26px"}
-                            background={"#414244"}
-                            fontSize={"md"}
+                          <ModalHeader
                             color={"#E2E4E7"}
-                            border-radius={"4px"}
-                            padding={"0 10px"}
+                            lineHeight={"16px"}
+                            fontSize={"xl"}
+                            display={"flex"}
+                            justifyContent={"space-between"}
                           >
-                            인간
-                          </Button>
-                          {"속성"}
-                          <Button>속성1</Button>
-                        </ModalBody>
-                      </ModalContent>
-                    </Popup>
-                  </> */}
-                </LeftItemContainer>
-                <LeftItemContainer onClick={checkIsReset}>
-                  <Icon
-                    src={isResetOn ? iconToolResetSelected : iconToolReset}
-                  />
-                  <LeftItemText>리셋</LeftItemText>
-                  <Modal
-                    isOpen={isResetOn}
-                    onClose={onCancelReset}
-                    title={"리셋"}
-                    txtSubmit={"확인"}
-                    onSubmit={onSubmitReset}
-                  >
-                    <>
-                      <p>
-                        {"작업 내용을 초기화하시겠습니까?"}
-                      </p>
-                    </>
-                  </Modal>
-                </LeftItemContainer>
+                            {"클래스 설정"}
+                            <Icon
+                              src={iconClose}
+                              style={{ width: 20, height: 20, cursor: "pointer" }}
+                              onClick={onCancelClass}
+                            />
+                          </ModalHeader>
+                          <ModalBody
+                            display={"flex"}
+                            width={"full"}
+                            //py={"12"}
+                            color={"#E2E4E7"}
+                            lineHeight={"16px"}
+                            fontSize={"xl"}
+                            alignItems={"center"}
+                            //justifyContent={"center"}
+                            flexDirection={"column"}
+                          >
+                            <Button 
+                              margin={"0 10px 8px 0"}
+                              height={"26px"}
+                              background={"#414244"}
+                              fontSize={"md"}
+                              color={"#E2E4E7"}
+                              border-radius={"4px"}
+                              padding={"0 10px"}
+                            >
+                              인간
+                            </Button>
+                            {"속성"}
+                            <Button>속성1</Button>
+                          </ModalBody>
+                        </ModalContent>
+                      </Popup>
+                    </> */}
+                  </LeftItemContainer>
+                </Tooltip>
+                <Tooltip hasArrow label="리셋" placement="right">
+                  <LeftItemContainer onClick={checkIsReset}>
+                    <Icon
+                      src={isResetOn ? iconToolResetSelected : iconToolReset}
+                    />
+                    <LeftItemText>리셋</LeftItemText>
+                    <Modal
+                      isOpen={isResetOn}
+                      onClose={onCancelReset}
+                      title={"리셋"}
+                      txtSubmit={"확인"}
+                      onSubmit={onSubmitReset}
+                    >
+                      <>
+                        <p>
+                          {"작업 내용을 초기화하시겠습니까?"}
+                        </p>
+                      </>
+                    </Modal>
+                  </LeftItemContainer>
+                </Tooltip>
                 <UnderBar></UnderBar>
-                <LeftItemContainer onClick={checkIsOD}>
+                <Tooltip hasArrow label="HD" placement="right">
+                <LeftItemContainer onClick={checkIsHD}>
+                  {/* // Todo: Active, Learning, Working, Inactive */}
                   <Icon
-                    src={isAutoLabelingOn ? isODOn ? iconToolODSelected : iconToolODActive : iconToolOD}
+                    src={isAutoLabelingOn ? isHDOn ? iconToolHDActive : iconToolHDActive : iconToolHD}
                   />
-                  <LeftItemText>OD</LeftItemText>
+                  <LeftItemText>HD</LeftItemText>
                 </LeftItemContainer>
-                <LeftItemContainer onClick={checkIsIS}>
-                  <Icon
-                    src={isAutoLabelingOn ? isISOn ? iconToolISSelected : iconToolISActive : iconToolIS}
-                  />
-                  <LeftItemText>IS</LeftItemText>
-                </LeftItemContainer>
-                <LeftItemContainer onClick={checkIsSES}>
-                  <Icon
-                    src={isAutoLabelingOn ? isSESOn ? iconToolSESSelected : iconToolSESActive : iconToolSES}
-                  />
-                  <LeftItemText>SES</LeftItemText>
-                </LeftItemContainer>
-                <LeftItemContainer onClick={checkIsSmartpen}>
-                  <Icon
-                    src={isSmartpenOn ? iconToolSmartpenSelected : iconToolSmartpen}
-                  />
-                  <LeftItemText>스마트펜</LeftItemText>
-                  <AlertModal
-                    isOpen={isSmartpenOn}
-                    onClose={onCancelSmartpen}
-                    title={"스마트펜"}
-                  >
-                    <>
-                      <p>
-                        {"준비중입니다."}
-                      </p>
-                    </>
-                  </AlertModal>
-                </LeftItemContainer>
-                <LeftItemContainer onClick={checkIsAutopoint}>
-                  <Icon
-                    src={isAutopointOn ? iconToolAutopointSelected : iconToolAutopoint}
-                  />
-                  <LeftItemText>오토포인트</LeftItemText>
-                  {/* <AlertModal
-                    isOpen={isAutopointOn}
-                    onClose={onCancelAutopoint}
-                    title={"오토포인트"}
-                  >
-                    <>
-                      <p>
-                        {"준비중입니다."}
-                      </p>
-                    </>
-                  </AlertModal> */}
-                </LeftItemContainer>
+                </Tooltip>
+                <Tooltip hasArrow label="OD" placement="right">
+                  <LeftItemContainer onClick={checkIsOD}>
+                    <Icon
+                      src={isAutoLabelingOn ? isODOn ? iconToolODSelected : iconToolODActive : iconToolOD}
+                    />
+                    <LeftItemText>OD</LeftItemText>
+                  </LeftItemContainer>
+                </Tooltip>
+                <Tooltip hasArrow label="IS" placement="right">
+                  <LeftItemContainer onClick={checkIsIS}>
+                    <Icon
+                      src={isAutoLabelingOn ? isISOn ? iconToolISSelected : iconToolISActive : iconToolIS}
+                    />
+                    <LeftItemText>IS</LeftItemText>
+                  </LeftItemContainer>
+                </Tooltip>
+                <Tooltip hasArrow label="SES" placement="right">
+                  <LeftItemContainer onClick={checkIsSES}>
+                    <Icon
+                      src={isAutoLabelingOn ? isSESOn ? iconToolSESSelected : iconToolSESActive : iconToolSES}
+                    />
+                    <LeftItemText>SES</LeftItemText>
+                  </LeftItemContainer>
+                </Tooltip>
+                <Tooltip hasArrow label="스마트펜" placement="right">
+                  <LeftItemContainer onClick={checkIsSmartpen}>
+                    <Icon
+                      src={isSmartpenOn ? iconToolSmartpenSelected : iconToolSmartpen}
+                    />
+                    <LeftItemText>스마트펜</LeftItemText>
+                    <AlertModal
+                      isOpen={isSmartpenOn}
+                      onClose={onCancelSmartpen}
+                      title={"스마트펜"}
+                    >
+                      <>
+                        <p>
+                          {"준비중입니다."}
+                        </p>
+                      </>
+                    </AlertModal>
+                  </LeftItemContainer>
+                </Tooltip>
+                <Tooltip hasArrow label="오토포인트" placement="right">
+                  <LeftItemContainer onClick={checkIsAutopoint}>
+                    <Icon
+                      src={isAutopointOn ? iconToolAutopointSelected : iconToolAutopoint}
+                    />
+                    <LeftItemText>오토포인트</LeftItemText>
+                    {/* <AlertModal
+                      isOpen={isAutopointOn}
+                      onClose={onCancelAutopoint}
+                      title={"오토포인트"}
+                    >
+                      <>
+                        <p>
+                          {"준비중입니다."}
+                        </p>
+                      </>
+                    </AlertModal> */}
+                  </LeftItemContainer>
+                </Tooltip>
                 <UnderBar></UnderBar>
-                <LeftItemContainer onClick={checkIsBoxing}>
-                  <Icon
-                    src={isBoxingOn ? iconToolBoxingSelected : iconToolBoxing}
-                  />
-                  <LeftItemText>박싱</LeftItemText>
-                </LeftItemContainer>
-                <LeftItemContainer onClick={checkIsPolyline}>
-                  <Icon
-                    src={isPolylineOn ? iconToolPolylineSelected : iconToolPolyline}
-                  />
-                  <LeftItemText>폴리라인</LeftItemText>
-                </LeftItemContainer>
-                <LeftItemContainer onClick={checkIsPolygon}>
-                  <Icon
-                    src={isPolygonOn ? iconToolPolygonSelected : iconToolPolygon}
-                  />
-                  <LeftItemText>폴리곤</LeftItemText>
-                </LeftItemContainer>
-                <LeftItemContainer onClick={checkIsPoint}>
-                  <Icon
-                    src={isPointOn ? iconToolPointSelected : iconToolPoint}
-                  />
-                  <LeftItemText>포인트</LeftItemText>
-                </LeftItemContainer>
-                <LeftItemContainer onClick={checkIsBrush}>
-                  <Icon
-                    src={isBrushOn ? iconToolBrushSelected : iconToolBrush}
-                  />
-                  <LeftItemText>브러쉬</LeftItemText>
-                  <AlertModal
-                    isOpen={isBrushOn}
-                    onClose={onCancelBrush}
-                    title={"브러쉬"}
-                  >
-                    <>
-                      <p>
-                        {"준비중입니다."}
-                      </p>
-                    </>
-                  </AlertModal>
-                </LeftItemContainer>
-                <LeftItemContainer onClick={checkIs3Dcube}>
-                  <Icon
-                    src={is3DcubeOn ? iconTool3DcubeSelected : iconTool3Dcube}
-                  />
-                  <LeftItemText>3D 큐브</LeftItemText>
-                  <AlertModal
-                    isOpen={is3DcubeOn}
-                    onClose={onCancel3Dcube}
-                    title={"3D큐브"}
-                  >
-                    <>
-                      <p>
-                        {"준비중입니다."}
-                      </p>
-                    </>
-                  </AlertModal>
-                </LeftItemContainer>
-                <LeftItemContainer onClick={checkIsSegment}>
-                  <Icon
-                    src={isSegmentOn ? iconToolSegmentSelected : iconToolSegment}
-                  />
-                  <LeftItemText>세그먼트</LeftItemText>
-                </LeftItemContainer>
-                <LeftItemContainer onClick={checkIsKeypoint} ref={refBottom}>
-                  <Icon
-                    src={isKeypointOn ? iconToolKeypointSelected : iconToolKeypoint}
-                  />
-                  <LeftItemText>키포인트</LeftItemText>
-                  {/* <AlertModal
-                    isOpen={isKeypointOn}
-                    onClose={onCancelKeypoint}
-                    title={"키포인트"}
-                  >
-                    <>
-                      <p>
-                        {"준비중입니다."}
-                      </p>
-                    </>
-                  </AlertModal> */}
-                </LeftItemContainer>
+                <Tooltip hasArrow label="박싱" placement="right">
+                  <LeftItemContainer onClick={checkIsBoxing}>
+                    <Icon
+                      src={isBoxingOn ? iconToolBoxingSelected : iconToolBoxing}
+                    />
+                    <LeftItemText>박싱</LeftItemText>
+                  </LeftItemContainer>
+                </Tooltip>
+                <Tooltip hasArrow label="폴리라인" placement="right">
+                  <LeftItemContainer onClick={checkIsPolyline}>
+                    <Icon
+                      src={isPolylineOn ? iconToolPolylineSelected : iconToolPolyline}
+                    />
+                    <LeftItemText>폴리라인</LeftItemText>
+                  </LeftItemContainer>
+                </Tooltip>
+                <Tooltip hasArrow label="폴리곤" placement="right">
+                  <LeftItemContainer onClick={checkIsPolygon}>
+                    <Icon
+                      src={isPolygonOn ? iconToolPolygonSelected : iconToolPolygon}
+                    />
+                    <LeftItemText>폴리곤</LeftItemText>
+                  </LeftItemContainer>
+                </Tooltip>
+                <Tooltip hasArrow label="포인트" placement="right">
+                  <LeftItemContainer onClick={checkIsPoint}>
+                    <Icon
+                      src={isPointOn ? iconToolPointSelected : iconToolPoint}
+                    />
+                    <LeftItemText>포인트</LeftItemText>
+                  </LeftItemContainer>
+                </Tooltip>
+                <Tooltip hasArrow label="브러쉬" placement="right">
+                  <LeftItemContainer onClick={checkIsBrush}>
+                    <Icon
+                      src={isBrushOn ? iconToolBrushSelected : iconToolBrush}
+                    />
+                    <LeftItemText>브러쉬</LeftItemText>
+                    <AlertModal
+                      isOpen={isBrushOn}
+                      onClose={onCancelBrush}
+                      title={"브러쉬"}
+                    >
+                      <>
+                        <p>
+                          {"준비중입니다."}
+                        </p>
+                      </>
+                    </AlertModal>
+                  </LeftItemContainer>
+                </Tooltip>
+                <Tooltip hasArrow label="3D큐브" placement="right">
+                  <LeftItemContainer onClick={checkIs3Dcube}>
+                    <Icon
+                      src={is3DcubeOn ? iconTool3DcubeSelected : iconTool3Dcube}
+                    />
+                    <LeftItemText>3D 큐브</LeftItemText>
+                    <AlertModal
+                      isOpen={is3DcubeOn}
+                      onClose={onCancel3Dcube}
+                      title={"3D큐브"}
+                    >
+                      <>
+                        <p>
+                          {"준비중입니다."}
+                        </p>
+                      </>
+                    </AlertModal>
+                  </LeftItemContainer>
+                </Tooltip>
+                <Tooltip hasArrow label="세그먼트" placement="right">
+                  <LeftItemContainer onClick={checkIsSegment}>
+                    <Icon
+                      src={isSegmentOn ? iconToolSegmentSelected : iconToolSegment}
+                    />
+                    <LeftItemText>세그먼트</LeftItemText>
+                  </LeftItemContainer>
+                </Tooltip>
+                <Tooltip hasArrow label="키포인트" placement="right">
+                  <LeftItemContainer onClick={checkIsKeypoint} ref={refBottom}>
+                    <Icon
+                      src={isKeypointOn ? iconToolKeypointSelected : iconToolKeypoint}
+                    />
+                    <LeftItemText>키포인트</LeftItemText>
+                    {/* <AlertModal
+                      isOpen={isKeypointOn}
+                      onClose={onCancelKeypoint}
+                      title={"키포인트"}
+                    >
+                      <>
+                        <p>
+                          {"준비중입니다."}
+                        </p>
+                      </>
+                    </AlertModal> */}
+                  </LeftItemContainer>
+                </Tooltip>
               </MainLeft>
               <LeftListArrow id={"arrowToolsBottom"} onClick={() => onMoveToToolsEnd()}>
                 <Icon 
@@ -2006,13 +2064,26 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                             style={{ marginLeft: 5, marginRight: 5 }}
                             onClick={() => isVisible(item.object.id, index)}
                           />
+                          <div>
                           <Icon
                             id={"deleteBtn" + index}
                             ref={refBtnDelete}
                             src={iconDelete}
                             style={{ marginLeft: 5, marginRight: 5 }}
-                            onClick={() => isDelete(item.object.id)}
-                          />
+                            onClick={checkIsDeleteInstance}
+                          /> 
+                          <Modal
+                            isOpen={isDeleteInstance}
+                            onClose={onCancelDelete}
+                            title={"Instance 삭제"}
+                            onSubmit={() => isDelete(item.object.id)}
+                            txtSubmit={"확인"}
+                          >
+                            <>
+                              <BoldText>{"Instance를 삭제하시겠습니까?"}</BoldText>
+                            </>
+                          </Modal>
+                          </div>
                         </DropBoxInstanceItem>
                       })}
                     </DropBoxInstanceWrapper>

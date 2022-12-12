@@ -199,6 +199,7 @@ const LabelingContainer = () => {
 
   const [isResetOn, setIsResetOnOff] = useState<boolean>(false);
 
+  const [isHDOn, setIsHDOnOff] = useState<boolean>(false);
   const [isODOn, setIsODOnOff] = useState<boolean>(false);
 
   const [isISOn, setIsISOnOff] = useState<boolean>(false);
@@ -351,6 +352,107 @@ const LabelingContainer = () => {
       // TODO: error handling
     }
   };
+  // ! call api HD Labeling
+  const getHD = async () => {
+    let paramOD = {
+      project_id: pId,
+      task_id: selectedTask.taskId,
+      labeling_type: 1,
+      //maxResults: 10000,
+    };
+    const resOD = await labelingApi.getOD(paramOD);
+    if (resOD && resOD.status === 200) {
+      if (resOD.data.length > 0) {
+        let iId = currentObjectId.current;
+        for (let i = 0; i < resOD.data.length; i++) {
+          let item = resOD.data[i];
+          let color = item.annotation_category.annotation_category_color;
+          let coordinate = {
+            left: item.annotation_data[0],
+            top: item.annotation_data[1],
+            width: item.annotation_data[2] - item.annotation_data[0],
+            height: item.annotation_data[3] - item.annotation_data[1],
+          };
+          setPositionX(() => item.annotation_data[0]);
+          setPositionY(() => item.annotation_data[1]);
+          setInstanceWidth(() => item.annotation_data[2] - item.annotation_data[0]);
+          setInstanceHeight(() => item.annotation_data[3] - item.annotation_data[1]);
+          drawBoxing('HOD', coordinate, color, null, iId++);
+        }
+        //setObjectId(() => iId);
+      }
+    } else {
+      // TODO: error handling
+    }
+
+    let paramIS = {
+      project_id: pId,
+      task_id: selectedTask.taskId,
+      labeling_type: 2,
+      //maxResults: 10000,
+    };
+    const resIS = await labelingApi.getIS(paramIS);
+    if (resIS && resIS.status === 200) {
+      if (resIS.data.length > 0) {
+        let iId = currentObjectId.current;
+        for (let i = 0; i < resIS.data.length; i++) {
+          let item = resIS.data[i];
+          //let color = item.annotation_category.annotation_category_color;
+          //let color = Math.floor(Math.random() * 16777215).toString(16);
+          //0xffffff = 16777215
+          let color = '#';
+          for (let c = 0; c < 6; c++) {
+            color += Math.round(Math.random() * 0xf).toString(16);
+          }
+          let items = item.annotation_data;
+          let coordinates = [];
+          for (let i = 0; i < items.length; i++) {
+            for (let j = 0; j < items[i].length; j = j + 2) {
+              coordinates.push(
+                new fabric.Point(items[i][j], items[i][j + 1]),
+              );
+            }
+          }
+          drawPolyItem('HIS', coordinates, 'polygon', color, null, 0, iId++);
+        }
+        //setObjectId(() => iId);
+      }
+    } else {
+      // TODO: error handling
+    }
+
+    let paramSES = {
+      project_id: pId,
+      task_id: selectedTask.taskId,
+      labeling_type: 3,
+      //maxResults: 10000,
+    };
+    const resSES = await labelingApi.getSES(paramSES);
+    if (resSES && resSES.status === 200) {
+      if (resSES.data.length > 0) {
+        let iId = currentObjectId.current;
+        for (let i = 0; i < resSES.data.length; i++) {
+          let item = resSES.data[i];
+          let color = item.annotation_category.annotation_category_color;
+          let items = item.annotation_data;
+          let coordinates = [];
+          for (let i = 0; i < items.length; i++) {
+            for (let j = 0; j < items[i].length; j = j + 2) {
+              coordinates.push(
+                new fabric.Point(items[i][j], items[i][j + 1]),
+              );
+            }
+          }
+          //console.log(item.annotation_type.annotation_type_id);
+          drawPolyItem('HSES', coordinates, 'segment', color, null, 0, iId++);
+        }
+        //setObjectId(() => iId);
+      }
+    } else {
+      // TODO: error handling
+    }
+  };
+
   // ! call api OD Labeling
   const getOD = async (param: any) => {
     const res = await labelingApi.getOD(param);
@@ -1369,6 +1471,7 @@ const LabelingContainer = () => {
   };
   const isDelete = (item: any) => {
     deleteItem(item);
+    setIsHDOnOff(() => false);
     setIsODOnOff(() => false);
     setIsISOnOff(() => false);
     setIsSESOnOff(() => false);
@@ -1455,6 +1558,7 @@ const LabelingContainer = () => {
       //isClassSettingOn = false;
       setIsClassOnOff(() => false);
     }
+    setIsDeleteInstance(false);
     canvas.renderAll();
   }
 
@@ -1514,6 +1618,7 @@ const LabelingContainer = () => {
   }, [objectId]);
 
   const resetAutoTools = () => {
+    setIsHDOnOff(() => false);
     setIsODOnOff(() => false);
     setIsISOnOff(() => false);
     setIsSESOnOff(() => false);
@@ -1767,6 +1872,36 @@ const LabelingContainer = () => {
     setCanvasImage();
     setIsResetOnOff(false);
   };
+
+  //**! OD */
+  const checkIsHD = () => {
+    if(isAutoLabelingOn) {
+      resetTools();
+      setIsHDOnOff((prev) => !prev);
+    }
+  };
+  useEffect(() => {
+    setLoading(true);
+    setIsAutoLabeling(true);
+    if (isHDOn) {
+      clearAutoLabeling('HOD');
+      clearAutoLabeling('HIS');
+      clearAutoLabeling('HSES');
+      setIsISOnOff(() => false);
+      setIsSESOnOff(() => false);
+      getHD();
+    } else if (!isHDOn) {
+      clearAutoLabeling('HOD');
+      clearAutoLabeling('HIS');
+      clearAutoLabeling('HSES');
+      //isClassSettingOn = false;
+      setIsClassOnOff(() => false);
+    }
+    setTimeout(() => {
+      setLoading(false);
+      setIsAutoLabeling(false);
+    }, 1500);
+  }, [isHDOn]);
 
   //**! OD */
   const checkIsOD = () => {
@@ -3932,6 +4067,19 @@ const LabelingContainer = () => {
       }
     }
   };
+
+  // ! Instance 삭제 확인 팝업 노출 상태 state
+  const [isDeleteInstance, setIsDeleteInstance] = useState<boolean>(false);
+
+  const checkIsDeleteInstance = () => {
+    setIsDeleteInstance((prev) => !prev);
+  };
+
+  const onCancelDelete = () => {
+    setIsDeleteInstance(false);
+  };
+
+
   // ! 반려 팝업 노출 상태 state
   const [isOpenReject, setIsOpenReject] = useState<boolean>(false);
   // ! 반려 팝업에서 반려 사유 입력 내용 저장 state
@@ -4047,6 +4195,7 @@ const LabelingContainer = () => {
         isTagOn={isTagOn}
         isClassOn={isClassOn}
         isResetOn={isResetOn}
+        isHDOn={isHDOn}
         isODOn={isODOn}
         isISOn={isISOn}
         isSESOn={isSESOn}
@@ -4068,6 +4217,7 @@ const LabelingContainer = () => {
         checkIsTag={checkIsTag}
         checkIsClass={checkIsClass}
         checkIsReset={checkIsReset}
+        checkIsHD={checkIsHD}
         checkIsOD={checkIsOD}
         checkIsIS={checkIsIS}
         checkIsSES={checkIsSES}
@@ -4127,6 +4277,9 @@ const LabelingContainer = () => {
         handleShowRejctHelp={handleShowRejctHelp}
         handleCancelRejectComment={handleCancelRejectComment}
         isAutoLabeling={isAutoLabeling}
+        isDeleteInstance={isDeleteInstance}
+        checkIsDeleteInstance={checkIsDeleteInstance}
+        onCancelDelete={onCancelDelete}
       />
     );
   }
