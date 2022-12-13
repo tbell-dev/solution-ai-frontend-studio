@@ -764,6 +764,15 @@ const Canvas = styled.canvas<{
       ? `${parseInt("540") + (parseInt(props.resizingVal) - 100)}px`
       : "540px"};
 `;
+const TopCanvas = styled.canvas<{
+  isFileSelectorOpen: boolean;
+  resizingVal?: string | null;
+}>`
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: none;
+`;
 
 const LabelingPresenter: React.FC<ILabelingPresenter> = ({
   canvas = new fabric.Canvas("fCanvas"),
@@ -1322,7 +1331,7 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                       src={isSmartpenOn ? iconToolSmartpenSelected : iconToolSmartpen}
                     />
                     <LeftItemText>스마트펜</LeftItemText>
-                    <AlertModal
+                    {/* <AlertModal
                       isOpen={isSmartpenOn}
                       onClose={onCancelSmartpen}
                       title={"스마트펜"}
@@ -1332,7 +1341,7 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                           {"준비중입니다."}
                         </p>
                       </>
-                    </AlertModal>
+                    </AlertModal> */}
                   </LeftItemContainer>
                 </Tooltip>
                 <Tooltip hasArrow label="오토포인트" placement="right">
@@ -1486,12 +1495,18 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                     <Spinner speed="0.35s" />
                   ))}
                 {/*//! Canvas */}
-                <div>
+                <div style={{ position: "relative" }}>
                   <Canvas
                     id={"fCanvas"}
                     isFileSelectorOpen={isFileSelectorOpen}
                     resizingVal={resizingVal}
                   />
+                  <TopCanvas
+                        id={"magicCanvas"}
+                        isFileSelectorOpen={isFileSelectorOpen}
+                        resizingVal={resizingVal}
+                        style={{display: "none"}}
+                      />
                 </div>
               </MainCenterUpper>
               <MainCenterBottom>

@@ -2025,6 +2025,7 @@ const LabelingContainer = () => {
       canvas.hoverCursor = "crosshair";
       initSmartpen();
     } else if(!isSmartpenOn && canvas) {
+      dissSmartpen();
     }
   }, [isSmartpenOn]);
 
@@ -2032,19 +2033,29 @@ const LabelingContainer = () => {
     if(!canvas || isSelectObjectOn) return;
     console.log(options);
     let pointer = canvas.getPointer(options);
+    //console.log("pointer");
+    console.log(pointer);
     startX = pointer.x;
     startY = pointer.y;
-    if (options.e.button == 0) {
+    //! fCanvas event handler
+    /* if (options.e.button == 0) {
       allowDraw = true;
       addMode = options.e.ctrlKey;
       downPoint = pointer;
-      downPoint = getMousePosition(options.e);
-      drawMask(downPoint.x, downPoint.y);
-  } else { 
-      allowDraw = false;
-      addMode = false;
-      oldMask = null;
-  }
+      //downPoint = getMousePosition(options.e);
+      drawMask(Math.round(downPoint.x), Math.round(downPoint.y)); */
+    //! MagicCanvas event handler
+    if (options.button == 0) {
+      allowDraw = true;
+      addMode = options.ctrlKey;
+      downPoint = pointer;
+      //downPoint = getMousePosition(options.e);
+      drawMask(Math.round(downPoint.x), Math.round(downPoint.y));
+    } else { 
+        allowDraw = false;
+        addMode = false;
+        oldMask = null;
+    }
   };
   const handleSmartpenMove = (options: any) => {
     if(!canvas || !isDown || isSelectObjectOn) return;
@@ -2052,7 +2063,7 @@ const LabelingContainer = () => {
     let nowX = pointer.x;
     let nowY = pointer.y;
 
-    if (allowDraw) {
+    /* if (allowDraw) {
       var p = pointer;
       if (p.x != downPoint.x || p.y != downPoint.y) {
           var dx = p.x - downPoint.x,
@@ -2069,7 +2080,7 @@ const LabelingContainer = () => {
               drawMask(downPoint.x, downPoint.y);
           }
       }
-  }
+    } */
   };
   const handleSmartpenUp = (options: any) => {
     if(!canvas || isSelectObjectOn) return;
@@ -2085,33 +2096,30 @@ const LabelingContainer = () => {
 
   const getMousePosition = (e) => {
     let p = e.target;  //$(e.target).offset(),
-    console.log(p);
-    console.log(p.offsetLeft);
-    console.log(p.offsetTop);
     let x = Math.round((e.clientX || e.pageX) - e.offsetX);
     let y = Math.round((e.clientY || e.pageY) - e.offsetY);
     return { x: x, y: y };
   };
 
   const drawMask= (x: number, y: number) => {
-    console.log(currentImgInfo.current);
+    //console.log(currentImgInfo.current);
     if (!currentImgInfo.current) return;
-    console.log("mask: " + x + ", " + y);
+    //console.log("mask: " + x + ", " + y);
     let image = {
         data: currentImgInfo.current.data.data,
         width: currentImgInfo.current.width,
         height: currentImgInfo.current.height,
         bytes: 4
     };
-    console.log(image);
+    //console.log(image);
     if (addMode && !oldMask) {
     	oldMask = mask;
     }
     
     let old = oldMask ? oldMask.data : null;
-    console.log(old);
+    //console.log(old);
     mask = MagicWand.floodFill(image, x, y, currentThreshold, old, true);
-    console.log(mask);
+    //console.log(mask);
     if (mask) mask = MagicWand.gaussBlurOnlyBorder(mask, blurRadius, old);
     
     if (addMode && oldMask) {
@@ -2123,17 +2131,17 @@ const LabelingContainer = () => {
 
   const drawBorder = (noBorder) => {
     if (!mask) return;
-    console.log("border");
+    //console.log("border");
     let x, y, i, j, k,
       w = currentImgInfo.current.width,
       h = currentImgInfo.current.height,
-      ctx = currentImgInfo.current.context,
-      imgData = ctx.createImageData(w, h),
+      mCtx = currentImgInfo.current.context,
+      imgData = mCtx.createImageData(w, h),
       res = imgData.data;
-    console.log(imgData);
+    //console.log(imgData.data);
     if (!noBorder) cacheInd = MagicWand.getBorderIndices(mask);
-    console.log(cacheInd);
-    //ctx.clearRect(0, 0, w, h);
+    //console.log(cacheInd);
+    mCtx.clearRect(0, 0, mCtx.canvas.width, mCtx.canvas.height);
   
     let len = cacheInd.length;
     for (j = 0; j < len; j++) {
@@ -2150,8 +2158,11 @@ const LabelingContainer = () => {
         res[k + 3] = 255;
       }
     }
-  
-    ctx.putImageData(imgData, 0, 0);
+    console.log(imgData.data);
+    console.log(res);
+    mCtx.putImageData(imgData, 0, 0);
+    //console.log(ctx);
+    //trace();
   };
 
   const concatMasks = (mask, old) => {
@@ -2207,6 +2218,53 @@ const LabelingContainer = () => {
     };
   };
 
+  const trace = () => {
+    let cs = MagicWand.traceContours(mask);
+    cs = MagicWand.simplifyContours(cs, simplifyTolerant, simplifyCount);
+    console.log(cs);
+    mask = null;
+
+    // draw contours
+    let ctx = currentImgInfo.current.context;
+    //ctx.clearRect(0, 0, currentImgInfo.current.width, currentImgInfo.current.height);
+    //inner
+    /* ctx.beginPath();
+    for (let i = 0; i < cs.length; i++) {
+        if (!cs[i].inner) continue;
+        let ps = cs[i].points;
+        ctx.moveTo(ps[0].x, ps[0].y);
+        for (let j = 1; j < ps.length; j++) {
+            ctx.lineTo(ps[j].x, ps[j].y);
+        }
+    }
+    ctx.strokeStyle = "red";
+    ctx.stroke();    
+    //outer
+    ctx.beginPath();
+    for (let i = 0; i < cs.length; i++) {
+        if (cs[i].inner) continue;
+        let ps = cs[i].points;
+        ctx.moveTo(ps[0].x, ps[0].y);
+        for (let j = 1; j < ps.length; j++) {
+            ctx.lineTo(ps[j].x, ps[j].y);
+        }
+    }
+    ctx.strokeStyle = "blue";
+    ctx.stroke(); */ 
+    let ps;
+    //inner
+    for (let i = 0; i < cs.length; i++) {
+      if (!cs[i].inner) continue;
+      ps = cs[i].points;
+    }
+    //outer
+    for (let i = 0; i < cs.length; i++) {
+        if (cs[i].inner) continue;
+        ps = cs[i].points;
+    }
+    drawPolyItem("smartpen", ps, "polygon", "blue", null, 0, null);
+};
+
   let colorThreshold = 50;
   let blurRadius = 5;
   let simplifyTolerant = 0;
@@ -2221,6 +2279,15 @@ const LabelingContainer = () => {
   let allowDraw = false;
   let addMode = false;
   let currentThreshold = colorThreshold;
+
+  /* useEffect(() => {
+    let rCvs = document.getElementById("magicCanvas");
+    if(allowDraw) {
+      rCvs.style.display = "none";
+    } else {
+      rCvs.style.display = "block";
+    }
+  }, [allowDraw]); */
 
   const initSmartpen = () => {
     /* colorThreshold = 50;
@@ -2252,12 +2319,20 @@ const LabelingContainer = () => {
     }; */
     //let img = new Image();
     //img.src = currentDataURL;
-
+    let rCvs = document.getElementById("magicCanvas") as HTMLCanvasElement;
+    rCvs.getContext("2d").canvas.width = canvas.width;
+    rCvs.getContext("2d").canvas.height = canvas.height;
+    rCvs.style.display = "block";
     let imageInfo: Iimg = {
-      width: imgWidth,
-      height: imgHeight,
-      context: ctx,
+      width: canvas.width,  //imgWidth,
+      height: canvas.height,  //imgHeight,
+      context: rCvs.getContext("2d"),
     };
+    
+    rCvs.addEventListener("mousedown", handleSmartpenDown);
+    rCvs.addEventListener("mousedown", handleSmartpenMove);
+    rCvs.addEventListener("mousedown", handleSmartpenUp);
+    //console.log(rCvs);
 
     let imgEl = document.createElement("img");
     imgEl.src = currentDataURL;
@@ -2266,9 +2341,30 @@ const LabelingContainer = () => {
     let tempCtx = document.createElement("canvas").getContext("2d");
     tempCtx.canvas.width = imageInfo.width;
     tempCtx.canvas.height = imageInfo.height;
+    imgEl.width = imageInfo.width;
+    imgEl.height = imageInfo.height;
+    //console.log(imgEl);
     tempCtx.drawImage(imgEl, 0, 0);
+    //console.log(tempCtx);
     imageInfo.data = tempCtx.getImageData(0, 0, imageInfo.width, imageInfo.height);
     setimgInfo(() => imageInfo);
+    setInterval(function () { hatchTick(); }, 100);
+  };
+
+  const hatchTick = () => {
+    hatchOffset = (hatchOffset + 1) % (hatchLength * 2);
+    drawBorder(true);
+  };
+
+  const dissSmartpen = () => {
+    let rCvs = document.getElementById("magicCanvas") as HTMLCanvasElement;
+    rCvs.style.display = "none";
+
+    rCvs.removeEventListener("mousedown", handleSmartpenDown);
+    rCvs.removeEventListener("mousedown", handleSmartpenMove);
+    rCvs.removeEventListener("mousedown", handleSmartpenUp);
+
+    setimgInfo(null);
   };
 
 
