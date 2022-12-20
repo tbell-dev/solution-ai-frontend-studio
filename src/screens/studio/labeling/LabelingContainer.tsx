@@ -2365,10 +2365,8 @@ const LabelingContainer = () => {
     rCvs.removeEventListener("mousedown", handleSmartpenUp);
 
     setimgInfo(null);
+    setInterval(function () { hatchTick(); }, 0);
   };
-
-
-
 
   //**! autopoint */
   const checkIsAutopoint = () => {
@@ -4338,15 +4336,15 @@ const LabelingContainer = () => {
         isDelete={isDelete}
         isDownloadOn={isDownloadOn}
         isDownload={isDownload}
-        selectDownload={selectDownload} 
-        labelWidth={labelWidth} 
-        labelHeight={labelHeight} 
-        labelDiag={labelDiag} 
-        labelCoordX={labelCoordX} 
-        labelCoordY={labelCoordY} 
-        labelPerWidth={labelPerWidth} 
-        labelPerHeight={labelPerHeight} 
-        labelPerDiag={labelPerDiag}      
+        selectDownload={selectDownload}
+        labelWidth={labelWidth}
+        labelHeight={labelHeight}
+        labelDiag={labelDiag}
+        labelCoordX={labelCoordX}
+        labelCoordY={labelCoordY}
+        labelPerWidth={labelPerWidth}
+        labelPerHeight={labelPerHeight}
+        labelPerDiag={labelPerDiag}
         ObjectListItem={ObjectListItem}
         isAutoLabelingOn={isAutoLabelingOn}
         objectType={objectType}
@@ -4375,8 +4373,16 @@ const LabelingContainer = () => {
         isAutoLabeling={isAutoLabeling}
         isDeleteInstance={isDeleteInstance}
         checkIsDeleteInstance={checkIsDeleteInstance}
-        onCancelDelete={onCancelDelete}
-      />
+        onCancelDelete={onCancelDelete} 
+        setInstanceClass={function (data: string): void {
+          throw new Error("Function not implemented.");
+        } } 
+        setInstanceAttr={function (attr: string): void {
+          throw new Error("Function not implemented.");
+        } } 
+        selectedObjectId={0} 
+        selectedObject={null} 
+        isHDLabelingOn={false}      />
     );
   }
   return null;

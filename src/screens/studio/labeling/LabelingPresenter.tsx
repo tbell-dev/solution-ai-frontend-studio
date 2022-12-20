@@ -77,11 +77,6 @@ import {
   MenuItem,
   MenuList,
   Spinner,
-  Modal as Popup,
-  ModalBody,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
   Tooltip,
 } from "@chakra-ui/react";
 import SmallTask from "../../../components/studio/SmallTask";
@@ -188,6 +183,8 @@ interface ILabelingPresenter {
   isVisible: (id: number, index: number) => void;
   isDelete: (id: number) => void;
   setInstanceIcon: (tool: string) => string;
+  setInstanceClass: (data: string) => void;
+  setInstanceAttr: (attr: string) => void;
   isDownload: string;
   selectDownload: string;
   isDownloadOn: boolean;
@@ -236,6 +233,9 @@ interface ILabelingPresenter {
   isDeleteInstance: boolean;
   checkIsDeleteInstance: () => void;
   onCancelDelete: () => void;
+  selectedObjectId: number;
+  selectedObject: fabric.Object;
+  isHDLabelingOn: boolean;
 }
   
 const StudioWrapper = styled.div`
@@ -545,6 +545,8 @@ const SpinnerWrapper = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: #00000000;
+  background: #00000000;
   width: 100%;
   height: 100%;
 `;
@@ -597,6 +599,28 @@ const DropBoxContainer = styled.div`
   width: 100%;
   border-bottom: 2px solid #c0c3c7;
 `;
+const MainRightContainer = styled.div`
+&::-webkit-scrollbar {
+  width: 10px;
+  display: none;
+}
+&::-webkit-scrollbar-thumb {
+  background: #A4A8AD;
+  border-radius: 2px;
+}
+&::-webkit-scrollbar-track {
+  background: #e2e4e7;
+  width: 10px;
+}
+:focus {
+  background: #5f6164;
+}
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: calc(100% - 142px);
+  overflow-y: auto;
+`;
 const VerticalDivider = styled.div`
   height: 20px;
 `;
@@ -631,16 +655,15 @@ const DropBoxContentTitle = styled.div`
   cursor: pointer;
 `;
 const DropBoxContentDescWrapper = styled.div`
-  padding: 20px;
+  padding: 15px 20px 10px;
   display: flex;
 `;
 const DropBoxInstanceDescWrapper = styled.div`
-  padding: 20px;
+  padding: 15px 20px 10px;
   display: flex;
   flex-direction: column;
-`;
-const DropBoxInstanceDescRow = styled.div`
-  display: flex;
+  border-top: 1px solid #c0c3c7;
+  border-bottom: 1px solid #c0c3c7;
 `;
 const DropBoxContentDescLeft = styled.div`
   display: flex;
@@ -650,6 +673,32 @@ const DropBoxContentDescLeft = styled.div`
 const DropBoxContentDescRight = styled.div`
   display: flex;
   flex-direction: column;
+`;
+const InstanceBoldText = styled.span`
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 14px;
+`;
+const InstanceNormalText = styled.span`
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 14px;
+  align-items: center;
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+`;
+const DropBoxInstanceDescRow = styled.div`
+  display: flex;
+`;
+const DropBoxInstanceDescLeft = styled.div`
+  display: flex;
+  flex-direction: column;
+  width: 20%;
+`;
+const DropBoxInstanceDescRight = styled.div`
+  display: flex;
+  flex-direction: column;
+  width: 30%;
 `;
 const DropBoxInstanceWrapper = styled.div`
 &::-webkit-scrollbar {
@@ -668,8 +717,11 @@ const DropBoxInstanceWrapper = styled.div`
 }
   display: flex;
   flex-direction: column;
-  height: 200px;
+  height: 100%;
+  max-height: 200px;
   overflow-y: auto;
+  border-top: 1px solid #c0c3c7;
+  border-bottom: 1px solid #c0c3c7;
 `;
 const DropBoxInstanceItem = styled.div`
   padding: 10px;
@@ -692,23 +744,6 @@ const FinishButton = styled.button`
 `;
 const RejectButton = styled(FinishButton)`
   background-color: #f28f40;
-`;
-const EffectValueContainer = styled.div`
-  width: 80%;
-  height: 36px;
-  background-color: #ffffff;
-  border: 1px solid #c0c3c7;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 10px;
-  margin-bottom: 20px;
-`;
-const EffectValue = styled.span`
-  color: #414244;
-  font-size: 14px;
-  line-height: 17px;
-  font-weight: 600;
 `;
 const RoundedButton = styled.div<{ isSelected: boolean }>`
   display: flex;
@@ -775,7 +810,6 @@ const TopCanvas = styled.canvas<{
 `;
 
 const LabelingPresenter: React.FC<ILabelingPresenter> = ({
-  canvas = new fabric.Canvas("fCanvas"),
   currentUser,
   currentDataURL,
   projectInfo,
@@ -791,7 +825,6 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
   selectedTask,
   loading,
   isFirst,
-  isCanvasOn,
   resizingVal,
   isDownloadOn,
   isDownload,
@@ -837,6 +870,10 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
   isOpenReject,
   rejectComment,
   showRejectComment,
+  isHDLabelingOn,
+
+  selectedObjectId,
+  selectedObject,
 
   isLock,
   isVisible,
@@ -907,7 +944,20 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
   isDeleteInstance,
   checkIsDeleteInstance,
   onCancelDelete,
+  setInstanceClass,
+  setInstanceAttr,
 }) => {
+  const tooltipTextHD = "Human Detection";
+  const tooltipContentsHD = 
+    <Icon src={iconToolHD} />;
+  {/* <Stack>
+    <Text>Human Detection</Text>
+    <Text>(OD + IS + SES)</Text>
+    <Icon src={iconToolHD} />
+  </Stack>; */}
+  const tooltipTextOD = "Object Detection";
+  const tooltipTextIS = "Instance Segmentation";
+  const tooltipTextSES = "Semantic Segmentation";
   return (
     <>
       <ChakraProvider>
@@ -918,8 +968,7 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                 <Icon
                   src={iconHome}
                   alt="icon-home"
-                  style={{ width: 20, height: 17 }}
-                />
+                  style={{ width: 20, height: 17 }} />
               </NavLink>
               <NavButton
                 style={{ cursor: "pointer" }}
@@ -929,8 +978,7 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                 <Icon
                   src={iconLink}
                   alt="icon-download"
-                  style={{ width: 17.38, height: 17.67 }}
-                />
+                  style={{ width: 17.38, height: 17.67 }} />
                 <Modal
                   isOpen={isDownloadOn}
                   onClose={onCancelDownload}
@@ -956,17 +1004,15 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                             _expanded={{ bgColor: "#e2e4e7" }}
                             isActive={isOpen}
                             as={Button}
-                            rightIcon={
-                              isOpen ? (
-                                <Icon src={arrowUp} />
-                              ) : (
-                                <Icon src={arrowDown} />
-                              )
-                            }
+                            rightIcon={isOpen ? (
+                              <Icon src={arrowUp} />
+                            ) : (
+                              <Icon src={arrowDown} />
+                            )}
                           >
                             <DropBoxTextWrapper>
                               <DropBoxNormalText style={{ height: 20 }}>
-                                {isDownload !== ""? selectDownload:"다운로드할 파일 형식을 선택해주세요."}
+                                {isDownload !== "" ? selectDownload : "다운로드할 파일 형식을 선택해주세요."}
                               </DropBoxNormalText>
                             </DropBoxTextWrapper>
                           </MenuButton>
@@ -1038,7 +1084,7 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                   style={{ width: 14, height: 14 }}
                 />
               </NavButton>
-              <NavButton 
+              <NavButton
                 style={{ cursor: "pointer" }}
                 onClick={goBack}
               >
@@ -1055,12 +1101,9 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                 <Icon
                   src={iconPrev}
                   style={{ width: 23.33, height: 23.33, cursor: "pointer" }}
-                  onClick={
-                    selectedTask
-                      ? () => handlePrevTask(selectedTask.taskId)
-                      : undefined
-                  }
-                />
+                  onClick={selectedTask
+                    ? () => handlePrevTask(selectedTask.taskId)
+                    : undefined} />
                 <HeaderCenterTextContainer>
                   <HeaderCenterText>
                     {projectInfo ? projectInfo.projectName : "프로젝트 명"}
@@ -1072,19 +1115,16 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                 <Icon
                   src={iconNext}
                   style={{ width: 23.33, height: 23.33, cursor: "pointer" }}
-                  onClick={
-                    selectedTask
-                      ? () => handleNextTask(selectedTask.taskId)
-                      : undefined
-                  }
-                />
+                  onClick={selectedTask
+                    ? () => handleNextTask(selectedTask.taskId)
+                    : undefined} />
                 <ProgressContainer>
                   <ProgressTextBox>
                     <BoldText>작업단계</BoldText>
                   </ProgressTextBox>
                   <Divider style={{ marginLeft: 4 }} />
                   <ProgressTextBox>
-                    <NormalText>가공</NormalText>
+                    <NormalText>{selectedTask && selectedTask.taskStep === 1 ? "가공" : "검수"}</NormalText>
                   </ProgressTextBox>
                 </ProgressContainer>
                 <ProgressContainer>
@@ -1123,10 +1163,9 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                         <NormalText style={{ color: "#FF4343" }}>
                           반려
                         </NormalText>
-                        <Icon src={rejectBtn} 
-                            style={{ marginLeft: 5, cursor: "pointer" }}
-                            onClick={handleShowRejctHelp} 
-                        />
+                        <Icon src={rejectBtn}
+                          style={{ marginLeft: 5, cursor: "pointer" }}
+                          onClick={handleShowRejctHelp} />
                         <Modal
                           isOpen={showRejectComment}
                           onClose={handleCancelRejectComment}
@@ -1164,8 +1203,7 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                   max={200}
                   //defaultValue={"100"}
                   value={resizingVal === null ? "100" : resizingVal}
-                  onChange={handleResizing}
-                />
+                  onChange={handleResizing} />
                 <Icon src={iconZoomInc} />
               </ZoomBox>
             </HeaderRight>
@@ -1173,108 +1211,239 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
           <Main>
             <MainLeftWrap>
               <LeftListArrow id={"arrowToolsTop"} onClick={() => onMoveToToolsTop()}>
-                <Icon 
-                  src={iconArrowTop}
-                />
+                <Icon
+                  src={iconArrowTop} />
               </LeftListArrow>
               <MainLeft id={"toolsWrap"} ref={refTools}>
                 <Tooltip hasArrow label="이동" placement="right">
                   <LeftItemContainer onClick={checkIsMove} ref={refTop}>
                     <Icon
-                      src={isMoveOn ? iconToolMoveSelected : iconToolMove}
-                    />
+                      src={isMoveOn ? iconToolMoveSelected : iconToolMove} />
                     <LeftItemText>이동</LeftItemText>
-                    <AlertModal
-                      isOpen={isMoveOn}
-                      onClose={onCancelMove}
-                      title={"이동"}
-                    >
-                      <>
-                        <p>
-                          {"준비중입니다."}
-                        </p>
-                      </>
-                    </AlertModal>
+                    {/* <AlertModal
+      isOpen={isMoveOn}
+      onClose={onCancelMove}
+      title={"이동"}
+    >
+      <>
+        <p>
+          {"준비중입니다."}
+        </p>
+      </>
+    </AlertModal> */}
                   </LeftItemContainer>
                 </Tooltip>
                 <Tooltip hasArrow label="태그" placement="right">
                   <LeftItemContainer onClick={checkIsTag}>
                     <Icon
-                      src={isTagOn ? iconToolTagSelected : iconToolTag}
-                    />
+                      src={isTagOn ? iconToolTagSelected : iconToolTag} />
                     <LeftItemText>태그</LeftItemText>
                   </LeftItemContainer>
                 </Tooltip>
                 <Tooltip hasArrow label="클래스" placement="right">
                   <LeftItemContainer onClick={checkIsClass}>
                     <Icon
-                      src={isClassOn ? iconToolClassSelected : iconToolClass}
-                    />
+                      src={isClassOn ? iconToolClassSelected : iconToolClass} />
                     <LeftItemText>클래스</LeftItemText>
                     {/* <>
-                      <Popup
-                        onClose={onCancelClass}
-                        isOpen={isClassOn}
-                        isCentered
-                        closeOnOverlayClick={false}
-                        closeOnEsc={false}
-                      >
+      <Popup
+        onClose={onCancelClass}
+        isOpen={isClassOn}
+        isCentered
+        closeOnOverlayClick={false}
+        closeOnEsc={false}
+      >
+        <ModalContent
                         <ModalContent 
-                          bgColor={"#5F6164"}
+        <ModalContent
+                        <ModalContent 
+        <ModalContent
+                        <ModalContent 
+        <ModalContent
+                        <ModalContent 
+        <ModalContent
+                        <ModalContent 
+        <ModalContent
+                        <ModalContent 
+        <ModalContent
+                        <ModalContent 
+        <ModalContent
+                        <ModalContent 
+        <ModalContent
+                        <ModalContent 
+        <ModalContent
+                        <ModalContent 
+        <ModalContent
+                        <ModalContent 
+        <ModalContent
+                        <ModalContent 
+        <ModalContent
+                        <ModalContent 
+        <ModalContent
+                        <ModalContent 
+        <ModalContent
+                        <ModalContent 
+        <ModalContent
+                        <ModalContent 
+        <ModalContent
+                        <ModalContent 
+        <ModalContent
+          bgColor={"#5F6164"}
+          position={"absolute"}
                           position={"absolute"} 
+          position={"absolute"}
+                          position={"absolute"} 
+          position={"absolute"}
+                          position={"absolute"} 
+          position={"absolute"}
+                          position={"absolute"} 
+          position={"absolute"}
+                          position={"absolute"} 
+          position={"absolute"}
+                          position={"absolute"} 
+          position={"absolute"}
+                          position={"absolute"} 
+          position={"absolute"}
+                          position={"absolute"} 
+          position={"absolute"}
+                          position={"absolute"} 
+          position={"absolute"}
+                          position={"absolute"} 
+          position={"absolute"}
+                          position={"absolute"} 
+          position={"absolute"}
+                          position={"absolute"} 
+          position={"absolute"}
+                          position={"absolute"} 
+          position={"absolute"}
+                          position={"absolute"} 
+          position={"absolute"}
+                          position={"absolute"} 
+          position={"absolute"}
+                          position={"absolute"} 
+          position={"absolute"}
+                          position={"absolute"} 
+          position={"absolute"}
+          top={"20px"}
                           top={"20px"} 
-                          left={"120px"}
-                          width={"280px"}
-                        >
-                          <ModalHeader
-                            color={"#E2E4E7"}
-                            lineHeight={"16px"}
-                            fontSize={"xl"}
-                            display={"flex"}
-                            justifyContent={"space-between"}
-                          >
-                            {"클래스 설정"}
-                            <Icon
-                              src={iconClose}
-                              style={{ width: 20, height: 20, cursor: "pointer" }}
-                              onClick={onCancelClass}
-                            />
-                          </ModalHeader>
-                          <ModalBody
-                            display={"flex"}
-                            width={"full"}
-                            //py={"12"}
-                            color={"#E2E4E7"}
-                            lineHeight={"16px"}
-                            fontSize={"xl"}
-                            alignItems={"center"}
-                            //justifyContent={"center"}
-                            flexDirection={"column"}
-                          >
+          top={"20px"}
+                          top={"20px"} 
+          top={"20px"}
+                          top={"20px"} 
+          top={"20px"}
+                          top={"20px"} 
+          top={"20px"}
+                          top={"20px"} 
+          top={"20px"}
+                          top={"20px"} 
+          top={"20px"}
+                          top={"20px"} 
+          top={"20px"}
+                          top={"20px"} 
+          top={"20px"}
+                          top={"20px"} 
+          top={"20px"}
+                          top={"20px"} 
+          top={"20px"}
+                          top={"20px"} 
+          top={"20px"}
+                          top={"20px"} 
+          top={"20px"}
+                          top={"20px"} 
+          top={"20px"}
+                          top={"20px"} 
+          top={"20px"}
+                          top={"20px"} 
+          top={"20px"}
+                          top={"20px"} 
+          top={"20px"}
+                          top={"20px"} 
+          top={"20px"}
+          left={"120px"}
+          width={"280px"}
+        >
+          <ModalHeader
+            color={"#E2E4E7"}
+            lineHeight={"16px"}
+            fontSize={"xl"}
+            display={"flex"}
+            justifyContent={"space-between"}
+          >
+            {"클래스 설정"}
+            <Icon
+              src={iconClose}
+              style={{ width: 20, height: 20, cursor: "pointer" }}
+              onClick={onCancelClass}
+            />
+          </ModalHeader>
+          <ModalBody
+            display={"flex"}
+            width={"full"}
+            //py={"12"}
+            color={"#E2E4E7"}
+            lineHeight={"16px"}
+            fontSize={"xl"}
+            alignItems={"center"}
+            //justifyContent={"center"}
+            flexDirection={"column"}
+          >
+            <Button
                             <Button 
-                              margin={"0 10px 8px 0"}
-                              height={"26px"}
-                              background={"#414244"}
-                              fontSize={"md"}
-                              color={"#E2E4E7"}
-                              border-radius={"4px"}
-                              padding={"0 10px"}
-                            >
-                              인간
-                            </Button>
-                            {"속성"}
-                            <Button>속성1</Button>
-                          </ModalBody>
-                        </ModalContent>
-                      </Popup>
-                    </> */}
+            <Button
+                            <Button 
+            <Button
+                            <Button 
+            <Button
+                            <Button 
+            <Button
+                            <Button 
+            <Button
+                            <Button 
+            <Button
+                            <Button 
+            <Button
+                            <Button 
+            <Button
+                            <Button 
+            <Button
+                            <Button 
+            <Button
+                            <Button 
+            <Button
+                            <Button 
+            <Button
+                            <Button 
+            <Button
+                            <Button 
+            <Button
+                            <Button 
+            <Button
+                            <Button 
+            <Button
+                            <Button 
+            <Button
+              margin={"0 10px 8px 0"}
+              height={"26px"}
+              background={"#414244"}
+              fontSize={"md"}
+              color={"#E2E4E7"}
+              border-radius={"4px"}
+              padding={"0 10px"}
+            >
+              인간
+            </Button>
+            {"속성"}
+            <Button>속성1</Button>
+          </ModalBody>
+        </ModalContent>
+      </Popup>
+    </> */}
                   </LeftItemContainer>
                 </Tooltip>
                 <Tooltip hasArrow label="리셋" placement="right">
                   <LeftItemContainer onClick={checkIsReset}>
                     <Icon
-                      src={isResetOn ? iconToolResetSelected : iconToolReset}
-                    />
+                      src={isResetOn ? iconToolResetSelected : iconToolReset} />
                     <LeftItemText>리셋</LeftItemText>
                     <Modal
                       isOpen={isResetOn}
@@ -1292,115 +1461,104 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                   </LeftItemContainer>
                 </Tooltip>
                 <UnderBar></UnderBar>
-                <Tooltip hasArrow label="HD" placement="right">
-                <LeftItemContainer onClick={checkIsHD}>
-                  {/* // Todo: Active, Learning, Working, Inactive */}
-                  <Icon
-                    src={isAutoLabelingOn ? isHDOn ? iconToolHDActive : iconToolHDActive : iconToolHD}
-                  />
-                  <LeftItemText>HD</LeftItemText>
-                </LeftItemContainer>
+                <Tooltip hasArrow label={tooltipTextHD} placement="right">
+                  <LeftItemContainer onClick={checkIsHD}>
+                    {/* // Todo: Active, Learning, Working, Inactive */}
+                    <Icon
+                      src={isAutoLabelingOn ? isHDOn ? iconToolHDActive : iconToolHDActive : iconToolHD} />
+                    <LeftItemText>HD</LeftItemText>
+                  </LeftItemContainer>
                 </Tooltip>
-                <Tooltip hasArrow label="OD" placement="right">
+                <Tooltip hasArrow label={tooltipTextOD} placement="right">
                   <LeftItemContainer onClick={checkIsOD}>
                     <Icon
-                      src={isAutoLabelingOn ? isODOn ? iconToolODSelected : iconToolODActive : iconToolOD}
-                    />
+                      src={isAutoLabelingOn ? isODOn ? iconToolODSelected : iconToolODActive : iconToolOD} />
                     <LeftItemText>OD</LeftItemText>
                   </LeftItemContainer>
                 </Tooltip>
-                <Tooltip hasArrow label="IS" placement="right">
+                <Tooltip hasArrow label={tooltipTextIS} placement="right">
                   <LeftItemContainer onClick={checkIsIS}>
                     <Icon
-                      src={isAutoLabelingOn ? isISOn ? iconToolISSelected : iconToolISActive : iconToolIS}
-                    />
+                      src={isAutoLabelingOn ? isISOn ? iconToolISSelected : iconToolISActive : iconToolIS} />
                     <LeftItemText>IS</LeftItemText>
                   </LeftItemContainer>
                 </Tooltip>
-                <Tooltip hasArrow label="SES" placement="right">
+                <Tooltip hasArrow label={tooltipTextSES} placement="right">
                   <LeftItemContainer onClick={checkIsSES}>
                     <Icon
-                      src={isAutoLabelingOn ? isSESOn ? iconToolSESSelected : iconToolSESActive : iconToolSES}
-                    />
+                      src={isAutoLabelingOn ? isSESOn ? iconToolSESSelected : iconToolSESActive : iconToolSES} />
                     <LeftItemText>SES</LeftItemText>
                   </LeftItemContainer>
                 </Tooltip>
                 <Tooltip hasArrow label="스마트펜" placement="right">
                   <LeftItemContainer onClick={checkIsSmartpen}>
                     <Icon
-                      src={isSmartpenOn ? iconToolSmartpenSelected : iconToolSmartpen}
-                    />
+                      src={isSmartpenOn ? iconToolSmartpenSelected : iconToolSmartpen} />
                     <LeftItemText>스마트펜</LeftItemText>
                     {/* <AlertModal
-                      isOpen={isSmartpenOn}
-                      onClose={onCancelSmartpen}
-                      title={"스마트펜"}
-                    >
-                      <>
-                        <p>
-                          {"준비중입니다."}
-                        </p>
-                      </>
-                    </AlertModal> */}
+      isOpen={isSmartpenOn}
+      onClose={onCancelSmartpen}
+      title={"스마트펜"}
+    >
+      <>
+        <p>
+          {"준비중입니다."}
+        </p>
+      </>
+    </AlertModal> */}
                   </LeftItemContainer>
                 </Tooltip>
                 <Tooltip hasArrow label="오토포인트" placement="right">
                   <LeftItemContainer onClick={checkIsAutopoint}>
                     <Icon
-                      src={isAutopointOn ? iconToolAutopointSelected : iconToolAutopoint}
-                    />
+                      src={isAutopointOn ? iconToolAutopointSelected : iconToolAutopoint} />
                     <LeftItemText>오토포인트</LeftItemText>
                     {/* <AlertModal
-                      isOpen={isAutopointOn}
-                      onClose={onCancelAutopoint}
-                      title={"오토포인트"}
-                    >
-                      <>
-                        <p>
-                          {"준비중입니다."}
-                        </p>
-                      </>
-                    </AlertModal> */}
+      isOpen={isAutopointOn}
+      onClose={onCancelAutopoint}
+      title={"오토포인트"}
+    >
+      <>
+        <p>
+          {"준비중입니다."}
+        </p>
+      </>
+    </AlertModal> */}
                   </LeftItemContainer>
                 </Tooltip>
                 <UnderBar></UnderBar>
                 <Tooltip hasArrow label="박싱" placement="right">
                   <LeftItemContainer onClick={checkIsBoxing}>
                     <Icon
-                      src={isBoxingOn ? iconToolBoxingSelected : iconToolBoxing}
-                    />
+                      src={isBoxingOn ? iconToolBoxingSelected : iconToolBoxing} />
                     <LeftItemText>박싱</LeftItemText>
                   </LeftItemContainer>
                 </Tooltip>
                 <Tooltip hasArrow label="폴리라인" placement="right">
                   <LeftItemContainer onClick={checkIsPolyline}>
                     <Icon
-                      src={isPolylineOn ? iconToolPolylineSelected : iconToolPolyline}
-                    />
+                      src={isPolylineOn ? iconToolPolylineSelected : iconToolPolyline} />
                     <LeftItemText>폴리라인</LeftItemText>
                   </LeftItemContainer>
                 </Tooltip>
                 <Tooltip hasArrow label="폴리곤" placement="right">
                   <LeftItemContainer onClick={checkIsPolygon}>
                     <Icon
-                      src={isPolygonOn ? iconToolPolygonSelected : iconToolPolygon}
-                    />
+                      src={isPolygonOn ? iconToolPolygonSelected : iconToolPolygon} />
                     <LeftItemText>폴리곤</LeftItemText>
                   </LeftItemContainer>
                 </Tooltip>
                 <Tooltip hasArrow label="포인트" placement="right">
                   <LeftItemContainer onClick={checkIsPoint}>
                     <Icon
-                      src={isPointOn ? iconToolPointSelected : iconToolPoint}
-                    />
+                      src={isPointOn ? iconToolPointSelected : iconToolPoint} />
                     <LeftItemText>포인트</LeftItemText>
                   </LeftItemContainer>
                 </Tooltip>
                 <Tooltip hasArrow label="브러쉬" placement="right">
                   <LeftItemContainer onClick={checkIsBrush}>
                     <Icon
-                      src={isBrushOn ? iconToolBrushSelected : iconToolBrush}
-                    />
+                      src={isBrushOn ? iconToolBrushSelected : iconToolBrush} />
                     <LeftItemText>브러쉬</LeftItemText>
                     <AlertModal
                       isOpen={isBrushOn}
@@ -1418,8 +1576,7 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                 <Tooltip hasArrow label="3D큐브" placement="right">
                   <LeftItemContainer onClick={checkIs3Dcube}>
                     <Icon
-                      src={is3DcubeOn ? iconTool3DcubeSelected : iconTool3Dcube}
-                    />
+                      src={is3DcubeOn ? iconTool3DcubeSelected : iconTool3Dcube} />
                     <LeftItemText>3D 큐브</LeftItemText>
                     <AlertModal
                       isOpen={is3DcubeOn}
@@ -1437,43 +1594,40 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                 <Tooltip hasArrow label="세그먼트" placement="right">
                   <LeftItemContainer onClick={checkIsSegment}>
                     <Icon
-                      src={isSegmentOn ? iconToolSegmentSelected : iconToolSegment}
-                    />
+                      src={isSegmentOn ? iconToolSegmentSelected : iconToolSegment} />
                     <LeftItemText>세그먼트</LeftItemText>
                   </LeftItemContainer>
                 </Tooltip>
                 <Tooltip hasArrow label="키포인트" placement="right">
                   <LeftItemContainer onClick={checkIsKeypoint} ref={refBottom}>
                     <Icon
-                      src={isKeypointOn ? iconToolKeypointSelected : iconToolKeypoint}
-                    />
+                      src={isKeypointOn ? iconToolKeypointSelected : iconToolKeypoint} />
                     <LeftItemText>키포인트</LeftItemText>
                     {/* <AlertModal
-                      isOpen={isKeypointOn}
-                      onClose={onCancelKeypoint}
-                      title={"키포인트"}
-                    >
-                      <>
-                        <p>
-                          {"준비중입니다."}
-                        </p>
-                      </>
-                    </AlertModal> */}
+      isOpen={isKeypointOn}
+      onClose={onCancelKeypoint}
+      title={"키포인트"}
+    >
+      <>
+        <p>
+          {"준비중입니다."}
+        </p>
+      </>
+    </AlertModal> */}
                   </LeftItemContainer>
                 </Tooltip>
               </MainLeft>
               <LeftListArrow id={"arrowToolsBottom"} onClick={() => onMoveToToolsEnd()}>
-                <Icon 
-                  src={iconArrowBottom}
-                />
+                <Icon
+                  src={iconArrowBottom} />
               </LeftListArrow>
             </MainLeftWrap>
             <MainCenterWrapper>
-            {loading && isAutoLabeling ? (
-              <SpinnerWrapper>
-                <Spinner speed="0.35s" />
-              </SpinnerWrapper>
-            ) : (<></>)}
+              {loading && isAutoLabeling ? (
+                <SpinnerWrapper>
+                  <Spinner speed="0.35s" />
+                </SpinnerWrapper>
+              ) : (<></>)}
               <MainCenterUpper
                 id={"mainCenterUpper"}
                 isFileSelectorOpen={isFileSelectorOpen}
@@ -1489,8 +1643,7 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                         display: "none",
                         filter: undefined,
                       }}
-                      src={currentDataURL ? currentDataURL : selectedTask.image}
-                    />
+                      src={currentDataURL ? currentDataURL : selectedTask.image} />
                   ) : (
                     <Spinner speed="0.35s" />
                   ))}
@@ -1499,15 +1652,48 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                   <Canvas
                     id={"fCanvas"}
                     isFileSelectorOpen={isFileSelectorOpen}
-                    resizingVal={resizingVal}
-                  />
+                    resizingVal={resizingVal} />
                   <TopCanvas
-                        id={"magicCanvas"}
-                        isFileSelectorOpen={isFileSelectorOpen}
-                        resizingVal={resizingVal}
-                        style={{display: "none"}}
-                      />
+                    id={"magicCanvas"}
+                    isFileSelectorOpen={isFileSelectorOpen}
+                    resizingVal={resizingVal}
+                    style={{ display: "none" }} />
                 </div>
+                {isClassOn && (
+                  <>
+                    <div className="class-setting">
+                      <ul className="class-setting-contents">
+                        <li>
+                          <h3>클래스 설정</h3>
+                        </li>
+                        <li>
+                          <button
+                            id="human"
+                            className="class-contents-obj"
+                            onClick={() => setInstanceClass("")}
+                            >
+                            인간
+                          </button>
+                        </li>
+                      </ul>
+                      <ul className="class-setting-contents">
+                        <li>
+                          <h3>성별</h3>
+                        </li>
+                        <li>
+                          <button
+                            id="female"
+                            className="class-contents-gender"
+                            onClick={() => setInstanceAttr("")}
+                            >
+                            여자
+                          </button>
+                        </li>
+                      </ul>
+                      <Icon src={iconClose} onClick={() => checkIsClass}/>
+                    </div>
+                  </>
+                )}
               </MainCenterUpper>
               <MainCenterBottom>
                 <ArrowDropDownBox onClick={toggleFileSelector}>
@@ -1877,6 +2063,7 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                     )}
                   </Menu>
                 </DropBoxContainer>
+                <MainRightContainer>
                 <DropBoxContainer style={{ padding: 0, borderBottom: 0 }}>
                   <DropBoxContentWrapper
                     style={{
@@ -1956,7 +2143,7 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                       <ArrowDropDownText>Instance</ArrowDropDownText>
                     </DropBoxContentTitle>
                   </DropBoxContentWrapper>
-                  {isInstanceOpen && (
+                  {/* {isInstanceOpen && (
                     <DropBoxContentDescWrapper
                       style={{
                         borderBottom: 2,
@@ -1969,22 +2156,24 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                           클래스
                         </DropBoxBoldText>
                         <DropBoxBoldText style={{ marginBottom: 8 }}>
-{/*                             {AttrList.attrName}
-*/}                          </DropBoxBoldText>
+                            {AttrList.attrName}
+                        </DropBoxBoldText>
                       </DropBoxContentDescLeft>
-                      <DropBoxContentDescRight>
-                        <DropBoxNormalText style={{ marginBottom: 8 }}>
-{/*                            <Ball style={{ backgroundColor: classColor }} />
-                          {className}
-*/}                          </DropBoxNormalText>
-                        <DropBoxNormalText style={{ marginBottom: 8 }}>
-{/*                             {AttrList.attrValue}
-*/}                          </DropBoxNormalText>
-                      </DropBoxContentDescRight>
+                      {selectedObject && (
+                        <DropBoxContentDescRight>
+                          <DropBoxNormalText style={{ marginBottom: 8 }}>
+                            <Ball style={{ backgroundColor: "blue" }} />
+                            {ObjectListItem[selectedObjectId].annotation.annotation_category.annotation_category_id}
+                          </DropBoxNormalText>
+                          <DropBoxNormalText style={{ marginBottom: 8 }}>
+                              {AttrList.attrValue}
+                          </DropBoxNormalText>
+                        </DropBoxContentDescRight>
+                      )}
                     </DropBoxContentDescWrapper>
-                  )}
-                  {isInstanceOpen && objectType === "rect" && (
-                    <DropBoxInstanceDescWrapper
+                  )} */}
+                  {isInstanceOpen && (
+                    <DropBoxContentDescWrapper
                       style={{
                         borderBottom: 2,
                         borderBottomColor: "#c0c3c7",
@@ -1993,53 +2182,40 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                     >
                       <DropBoxInstanceDescRow>
                         <DropBoxContentDescLeft>
-                          <DropBoxBoldText style={{ width: 50, marginBottom: 8 }}>
-                            높이
+                          <DropBoxBoldText style={{ marginBottom: 8 }}>
+                            클래스
                           </DropBoxBoldText>
                         </DropBoxContentDescLeft>
-                        <DropBoxContentDescRight>
+                        {/* <DropBoxContentDescRight>
+                          {selectedObject && selectedObject.annotation && (
                           <DropBoxNormalText style={{ marginBottom: 8 }}>
-                            {labelHeight}px<br></br>({labelPerHeight}%)
+                            <Ball style={{ backgroundColor: "blue" }} />
+                            {selectedObject.annotation.annotation_category.annotation_category_id}
                           </DropBoxNormalText>
-                        </DropBoxContentDescRight>
+                          )}
+                        </DropBoxContentDescRight> */}
                       </DropBoxInstanceDescRow>
-                      <DropBoxInstanceDescRow>
-                        <DropBoxContentDescLeft>
-                          <DropBoxBoldText style={{ width: 50, marginBottom: 8 }}>
-                            대각선
-                          </DropBoxBoldText>
-                        </DropBoxContentDescLeft>
-                        <DropBoxContentDescRight>
-                          <DropBoxNormalText style={{ marginBottom: 8 }}>
-                            {labelDiag}px<br></br>({labelPerDiag}%)
-                          </DropBoxNormalText>
-                        </DropBoxContentDescRight>
-                      </DropBoxInstanceDescRow>
-                      <DropBoxInstanceDescRow>
-                        <DropBoxContentDescLeft>
-                          <DropBoxBoldText style={{ width: 50, marginBottom: 8 }}>
-                            너비
-                          </DropBoxBoldText>
-                        </DropBoxContentDescLeft>
-                        <DropBoxContentDescRight>
-                          <DropBoxNormalText style={{ marginBottom: 8 }}>
-                            {labelWidth}px<br></br>({labelPerWidth}%)
-                          </DropBoxNormalText>
-                        </DropBoxContentDescRight>
-                      </DropBoxInstanceDescRow>
-                      <DropBoxInstanceDescRow>
-                        <DropBoxContentDescLeft>
-                          <DropBoxBoldText style={{ width: 50, marginBottom: 8 }}>
-                            위치
-                          </DropBoxBoldText>
-                        </DropBoxContentDescLeft>
-                        <DropBoxContentDescRight>
-                          <DropBoxNormalText style={{ marginBottom: 8 }}>
-                            x: {labelCoordX}px<br></br> y: {labelCoordY}px
-                          </DropBoxNormalText>
-                        </DropBoxContentDescRight>
-                      </DropBoxInstanceDescRow>
-                    </DropBoxInstanceDescWrapper>
+                      {/* {selectedObject && selectedObject.annotation &&(
+                        selectedObject.annotation.annotation_category.annotation_category_attributes.map((item, index) => {
+                              return <DropBoxInstanceDescRow
+                              key={index}
+                            >
+                          <DropBoxContentDescLeft>
+                            <DropBoxBoldText style={{ marginBottom: 8 }}>
+                               
+                                {item.annotation_category_attr_name}
+                            </DropBoxBoldText>
+                          </DropBoxContentDescLeft>
+                          <DropBoxContentDescRight>
+                            <DropBoxNormalText style={{ marginBottom: 8 }}>
+                              
+                              {item.annotation_category_attr_val}
+                            </DropBoxNormalText>
+                          </DropBoxContentDescRight>
+                        </DropBoxInstanceDescRow>
+                        })
+                      )} */}
+                    </DropBoxContentDescWrapper>
                   )}
                   {isInstanceOpen && ObjectListItem.length > 0 && (
                     <DropBoxInstanceWrapper>
@@ -2085,9 +2261,10 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                             ref={refBtnDelete}
                             src={iconDelete}
                             style={{ marginLeft: 5, marginRight: 5 }}
-                            onClick={checkIsDeleteInstance}
+                            //onClick={checkIsDeleteInstance}
+                            onClick={() => isDelete(item.object.id)}
                           /> 
-                          <Modal
+                          {/* <Modal
                             isOpen={isDeleteInstance}
                             onClose={onCancelDelete}
                             title={"Instance 삭제"}
@@ -2097,11 +2274,65 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                             <>
                               <BoldText>{"Instance를 삭제하시겠습니까?"}</BoldText>
                             </>
-                          </Modal>
+                          </Modal> */}
                           </div>
                         </DropBoxInstanceItem>
                       })}
                     </DropBoxInstanceWrapper>
+                  )}
+                  {isInstanceOpen && objectType === "rect" && (
+                    <DropBoxInstanceDescWrapper
+                      style={{
+                        borderBottom: 2,
+                        borderBottomColor: "#c0c3c7",
+                        borderBottomStyle: "solid",
+                      }}
+                    >
+                      <DropBoxInstanceDescRow>
+                        <DropBoxInstanceDescLeft>
+                          <InstanceBoldText style={{ width: 40, marginBottom: 8 }}>
+                            높이
+                          </InstanceBoldText>
+                        </DropBoxInstanceDescLeft>
+                        <DropBoxInstanceDescRight>
+                          <InstanceNormalText style={{ marginBottom: 8 }}>
+                            {labelHeight}px<br></br>({labelPerHeight}%)
+                          </InstanceNormalText>
+                        </DropBoxInstanceDescRight>
+                        <DropBoxInstanceDescLeft>
+                          <InstanceBoldText style={{ width: 40, marginBottom: 8 }}>
+                            대각선
+                          </InstanceBoldText>
+                        </DropBoxInstanceDescLeft>
+                        <DropBoxInstanceDescRight>
+                          <InstanceNormalText style={{ marginBottom: 8 }}>
+                            {labelDiag}px<br></br>({labelPerDiag}%)
+                          </InstanceNormalText>
+                        </DropBoxInstanceDescRight>
+                      </DropBoxInstanceDescRow>
+                      <DropBoxInstanceDescRow>
+                        <DropBoxInstanceDescLeft>
+                          <InstanceBoldText style={{ width: 40, marginBottom: 8 }}>
+                            너비
+                          </InstanceBoldText>
+                        </DropBoxInstanceDescLeft>
+                        <DropBoxInstanceDescRight>
+                          <InstanceNormalText style={{ marginBottom: 8 }}>
+                            {labelWidth}px<br></br>({labelPerWidth}%)
+                          </InstanceNormalText>
+                        </DropBoxInstanceDescRight>
+                        <DropBoxInstanceDescLeft>
+                          <InstanceBoldText style={{ width: 40, marginBottom: 8 }}>
+                            위치
+                          </InstanceBoldText>
+                        </DropBoxInstanceDescLeft>
+                        <DropBoxInstanceDescRight>
+                          <InstanceNormalText style={{ marginBottom: 8 }}>
+                            x: {labelCoordX}px<br></br> y: {labelCoordY}px
+                          </InstanceNormalText>
+                        </DropBoxInstanceDescRight>
+                      </DropBoxInstanceDescRow>
+                    </DropBoxInstanceDescWrapper>
                   )}
                 </DropBoxContainer>
                 <DropBoxContainer style={{ padding: 0, borderBottom: 0 }}>
@@ -2150,7 +2381,45 @@ const LabelingPresenter: React.FC<ILabelingPresenter> = ({
                       })}
                     </DropBoxInstanceWrapper>
                   )} */}
+                  {isHistoryOpen && ObjectListItem.length > 0 && (
+                  <DropBoxInstanceWrapper>
+                      {ObjectListItem.map((item, index) => {
+                            return <DropBoxInstanceItem
+                          key={index}
+                          id={"instance" + index}
+                          style={{
+                            borderBottom: 2,
+                            borderBottomColor: "#c0c3c7",
+                            borderBottomStyle: "solid",
+                          }}
+                        >
+                          <DropBoxTextWrapper>
+                            <Icon
+                              src={setInstanceIcon(item.object.tool)}
+                              style={{ marginLeft: 10, marginRight: 10 }}
+                            />
+                            <DropBoxNormalText>
+                              {item.object.id + ": " + item.className}
+                            </DropBoxNormalText>
+                          </DropBoxTextWrapper>
+                          <Icon
+                            src={item.object.selectable ? iconUnLock : iconLock}
+                            style={{ marginLeft: 10, marginRight: 5 }}
+                          />
+                          <Icon
+                            src={item.object.visible ? iconVisible : iconInvisible}
+                            style={{ marginLeft: 5, marginRight: 5 }}
+                          />
+                          <Icon
+                            src={iconDelete}
+                            style={{ marginLeft: 5, marginRight: 5 }}
+                          /> 
+                        </DropBoxInstanceItem>
+                      })}
+                    </DropBoxInstanceWrapper>
+                  )}
                 </DropBoxContainer>
+                </MainRightContainer>
               </MainRightUpper>
               <MainRightBottom>
                 {selectedTask &&
